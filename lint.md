@@ -260,4 +260,4 @@ Enabled by default: true
 
 ## Version
 
-Generated on 2020-11-16 11:33:34 +0100 from [e680fe3](https://github.com/google/verible/commit/e680fe31ce34441e3a5b3c144a74a7c8f854afb4)
+Generated on 2020-11-17 09:50:54 +0100 from [ca5ad37](https://github.com/google/verible/commit/ca5ad37fdb9aca5018161b97f45b2dcd48a6a6e1)
