@@ -330,4 +330,4 @@ Enabled by default: true
 
 ## Version
 
-Generated on 2020-11-18 11:44:58 +0100 from [d37686c](https://github.com/google/verible/commit/d37686c59f5d161e330634a94b6853229e7ca6f9)
+Generated on 2020-11-18 13:05:51 +0100 from [49ebf2c](https://github.com/google/verible/commit/49ebf2c95800a14aab74dffee0c47dfd6a733400)
