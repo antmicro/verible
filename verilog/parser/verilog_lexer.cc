@@ -46,13 +46,15 @@ bool VerilogLexer::TokenIsError(const TokenInfo& token) const {
 bool VerilogLexer::KeepSyntaxTreeTokens(const TokenInfo& t) {
   switch (t.token_enum()) {
     case TK_COMMENT_BLOCK:  // fall-through
-    case TK_EOL_COMMENT:    // fall-through
+    case TK_EOL_COMMENT:
     case TK_ATTRIBUTE:      // fall-through
     case TK_SPACE:          // fall-through
     case TK_NEWLINE:
     case TK_LINE_CONT:
       // TODO(fangism): preserve newlines until after some preprocessing steps.
       return false;
+//    case TK_EOL_COMMENT:
+//      return true;
     default:
       return true;
   }

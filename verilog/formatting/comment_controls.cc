@@ -84,6 +84,8 @@ ByteOffsetSet DisableFormattingRanges(absl::string_view text,
   if (begin_disable_offset != kNullOffset) {
     disable_set.Add({begin_disable_offset, static_cast<int>(text.length())});
   }
+
+  VLOG(0) << disable_set.size();
   return disable_set;
 }
 
