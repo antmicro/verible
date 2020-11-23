@@ -348,11 +348,6 @@ class PortDeclarationColumnSchemaScanner : public ColumnSchemaScanner {
         ReserveNewColumn(leaf, FlushLeft, verible::NextSiblingPath(Path()));
         break;
       }
-      case verilog_tokentype::TK_EOL_COMMENT: {
-	VLOG(0) << "my log!!!!!!";
-	break;
-
-      }
       // For now, treat [...] as a single column per dimension.
       case '[': {
         if (verilog::analysis::ContextIsInsideDeclarationDimensions(
