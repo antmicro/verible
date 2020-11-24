@@ -368,6 +368,7 @@ static void DeterminePartitionExpansion(
       break;
     // Try to fit kAppendFittingSubPartitions partition into single line.
     // If it doesn't fit expand to grouped nodes.
+    case PartitionPolicyEnum::kCompactPartitions:
     case PartitionPolicyEnum::kAppendFittingSubPartitions:
     case PartitionPolicyEnum::kFitOnLineElseExpand: {
       // !style.try_wrap_long_lines was already handled above
@@ -528,6 +529,9 @@ Status Formatter::Format(const ExecutionControl& control) {
       const auto partition_policy = uwline.PartitionPolicy();
 
       switch (partition_policy) {
+        case PartitionPolicyEnum::kCompactPartitions:
+          verible::CompactPartitions(&node, style_);
+          break;
         case PartitionPolicyEnum::kAppendFittingSubPartitions:
           // Reshape partition tree with kAppendFittingSubPartitions policy
           verible::ReshapeFittingSubpartitions(&node, style_);
