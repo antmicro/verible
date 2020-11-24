@@ -682,4 +682,102 @@ void ReshapeFittingSubpartitions(TokenPartitionTree* node,
   node->AdoptSubtreesFrom(&temporary_tree);
 }
 
+
+static void RearrangePartitions(
+    VectorTree<TokenPartitionTreeWrapper>* fitted_partitions,
+    const partition_range& unfitted_partitions,
+    const BasicFormatStyle& style) {
+
+  // arguments
+  const auto& args = unfitted_partitions;
+
+  // at least one argument
+  CHECK_GE(args.size(), 1);
+
+  // Create first partition group
+  // and populate it with function name (e.g. { [function foo (] })
+  auto* group = fitted_partitions->NewChild(args[0].Value());
+  auto* child = group->NewChild(args[0]);
+
+  int indent = style.wrap_spaces + group->Value().Value(args[0]).IndentationSpaces();
+  const auto remaining_args =
+      make_container_range(args.begin() + 1, args.end());
+  for (const auto& arg : remaining_args) {
+    // Every group should have at least one child
+    CHECK_GT(group->Children().size(), 0);
+
+    // Try appending current argument to current line
+    UnwrappedLine uwline = group->Value().Value(arg);
+    if (FitsOnLine(uwline, style).fits) {
+      // Fits, appending child
+      child = group->NewChild(arg);
+      group->Value().Update(child);
+    } else {
+      // Does not fit, start new group with current child
+      group = group->NewSibling(arg.Value());
+      child = group->NewChild(arg);
+      // no need to update because group was created
+      // with current child value
+
+      // Fix group indentation
+      group->Value().SetIndentationSpaces(indent);
+    }
+  }
+}
+
+void CompactPartitions(TokenPartitionTree* node, const BasicFormatStyle& style) {
+  VLOG(4) << __FUNCTION__ << ", partition:\n" << *node;
+
+  // Leaf or simple node, e.g. '[function foo ( ) ;]'
+  if (node->Children().size() < 2) {
+    // Nothing to do
+    return;
+  }
+
+  // Partition with arguments should have at least one argument
+  const auto& args = node->Children();
+  partition_range args_range;
+  args_range = make_container_range(args.begin(), args.end());
+
+  VectorTree<TokenPartitionTreeWrapper> rearranged_tree(node->Value());
+  RearrangePartitions(&rearranged_tree, args_range, style);
+
+  // Rebuild TokenPartitionTree
+  TokenPartitionTree temporary_tree(node->Value());
+
+  // Iterate over partition groups
+  for (const auto& itr : rearranged_tree.Children()) {
+    auto uwline = itr.Value().Value();
+    // Partitions groups should fit in line but we're
+    // leaving final decision to ExpandableTreeView
+    uwline.SetPartitionPolicy(PartitionPolicyEnum::kFitOnLineElseExpand);
+
+    // Create new grouping node
+    auto* group = temporary_tree.NewChild(uwline);
+
+    // Iterate over partitions in group
+    for (const auto& partition : itr.Children()) {
+      // access partition_node_type
+      const auto* node = partition.Value().Node();
+
+      // Append child (warning contains original indentation)
+      group->NewChild(*node);
+    }
+  }
+
+  // Update grouped childrens indentation in case of expanding grouping
+  // partitions
+  for (auto& group : temporary_tree.Children()) {
+    for (auto& subpart : group.Children()) {
+      AdjustIndentationAbsolute(&subpart, group.Value().IndentationSpaces());
+    }
+  }
+
+  // Remove moved nodes
+  node->Children().clear();
+
+  // Move back from temporary tree
+  node->AdoptSubtreesFrom(&temporary_tree);
+}
+
 }  // namespace verible

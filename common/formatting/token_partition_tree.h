@@ -227,6 +227,8 @@ TokenPartitionTree* MergeLeafIntoNextLeaf(TokenPartitionTree* leaf);
 void ReshapeFittingSubpartitions(TokenPartitionTree* node,
                                  const verible::BasicFormatStyle& style);
 
+void CompactPartitions(TokenPartitionTree* node, const BasicFormatStyle& style);
+
 }  // namespace verible
 
 #endif  // VERIBLE_COMMON_FORMATTING_TOKEN_PARTITION_TREE_H_
