@@ -1485,9 +1485,8 @@ const TreeUnwrapperTestData kUnwrapModuleTestCases[] = {
             0, L(0, {"module", "foob", ";"}),
             // TODO(fangism): subpartition multiple assignments.
             N(1, L(1, {"assign", "s", "=", "a", ","}),
-              // TODO(fangism): wrap-indent subsequent assignments.
-              L(1, {"y", "[", "0", "]", "=", "b", "[", "1", "]", ","}),
-              L(1, {"z", ".", "z", "=", "c", "-", "jkl", ";"})),
+              L(3, {"y", "[", "0", "]", "=", "b", "[", "1", "]", ","}),
+              L(3, {"z", ".", "z", "=", "c", "-", "jkl", ";"})),
             L(0, {"endmodule"})),
     },
 
@@ -1499,7 +1498,7 @@ const TreeUnwrapperTestData kUnwrapModuleTestCases[] = {
         ModuleDeclaration(
             0, L(0, {"module", "foob", ";"}),
             N(1, L(1, {"assign", "`BIT_ASSIGN_MACRO", "("}),
-              MacroArgList(3, L(3, {"l1", ","}), L(3, {"r1", ")"}))),
+              MacroArgList(5, L(5, {"l1", ","}), L(5, {"r1", ")"}))),
             L(0, {"endmodule"})),
     },
 
@@ -1511,7 +1510,7 @@ const TreeUnwrapperTestData kUnwrapModuleTestCases[] = {
         ModuleDeclaration(
             0, L(0, {"module", "foob", ";"}),
             N(1, L(1, {"assign", "`BIT_ASSIGN_MACRO", "("}),
-              MacroArgList(3, L(3, {"l1", ","}), L(3, {"r1", ")", ";"}))),
+              MacroArgList(5, L(5, {"l1", ","}), L(5, {"r1", ")", ";"}))),
             L(0, {"endmodule"})),
     },
 
@@ -1528,7 +1527,7 @@ const TreeUnwrapperTestData kUnwrapModuleTestCases[] = {
                 1, L(1, {"initial", "begin"}),
                 StatementList(
                     2, L(2, {"assign", "`BIT_ASSIGN_MACRO", "("}),
-                    MacroArgList(4, L(4, {"l1", ","}), L(4, {"r1", ")"}))),
+                    MacroArgList(6, L(6, {"l1", ","}), L(6, {"r1", ")"}))),
                 L(1, {"end"})),
             L(0, {"endmodule"})),
     },
@@ -1545,7 +1544,7 @@ const TreeUnwrapperTestData kUnwrapModuleTestCases[] = {
             ModuleItemList(
                 1, L(1, {"initial", "begin"}),
                 N(2, L(2, {"assign", "z1", "=", "`RVALUE", "("}),
-                  MacroArgList(4, L(4, {"l1", ","}), L(4, {"r1", ")", ";"}))),
+                  MacroArgList(6, L(6, {"l1", ","}), L(6, {"r1", ")", ";"}))),
                 L(1, {"end"})),
             L(0, {"endmodule"})),
     },
@@ -2383,6 +2382,28 @@ const TreeUnwrapperTestData kUnwrapModuleTestCases[] = {
             L(0, {"endmodule"})),
     },
 
+
+    {
+        "module with comment inside continuous assignment",
+        "module m;\n"
+        "// comment1\n"
+        "assign aaaaa = (bbbbb != ccccc) &\n"
+        "// comment2\n"
+        "(ddddd | (eeeee & ffffff));\n"
+        "endmodule\n",
+        ModuleDeclaration(
+            0, L(0, {"module", "m", ";"}),
+            ModuleItemList(1,  //
+                L(1, {"// comment1"}),  //
+                N(1,
+                    L(1, {"assign", "aaaaa", "=", "(",
+                        "bbbbb", "!=", "ccccc", ")", "&"}),  //
+                    L(3, {"// comment2"}),  //
+                    L(3, {"(", "ddddd", "|", "(",
+                        "eeeee", "&", "ffffff", ")", ")", ";"}))),  //
+            L(0, {"endmodule"})),
+    },
+
     {
         "module with pair of procedural continuous assignment statements",
         "module proc_cont_assigner;\n"
@@ -2428,7 +2449,7 @@ const TreeUnwrapperTestData kUnwrapModuleTestCases[] = {
             N(1, L(1, {"always", "begin"}),
               N(2, L(2, {"force", "x1", "=", "`y1", "(", ")", ";"}),
                 N(2, L(2, {"force", "x2", "=", "`y2", "("}),
-                  N(4, L(4, {"f", ","}), L(4, {"g", ")", ";"})))),
+                  N(6, L(6, {"f", ","}), L(6, {"g", ")", ";"})))),
               L(1, {"end"})),
             L(0, {"endmodule"})),
     },
