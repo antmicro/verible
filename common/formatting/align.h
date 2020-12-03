@@ -26,6 +26,8 @@
 #include "common/text/tree_context_visitor.h"
 #include "common/util/logging.h"
 #include "verilog/CST/verilog_nonterminals.h"  // for NodeEnumToString
+#include "common/text/tree_utils.h"
+#include "common/text/token_stream_view.h" // for TokenRange
 
 namespace verible {
 
@@ -80,6 +82,7 @@ class ColumnSchemaScanner : public TreeContextPathVisitor {
   void ReserveNewColumn(const Symbol& symbol,
                         const AlignmentColumnProperties& properties,
                         const SyntaxTreePath& path);
+  void ReserveNewColumn(const TokenInfo& token, const AlignmentColumnProperties& properties);
 
   // Reserve a column using the current path as the key.
   void ReserveNewColumn(const Symbol& symbol,
@@ -288,6 +291,8 @@ ExtractAlignmentGroupsFunction ExtractAlignmentGroupsAdapter(
     const AlignmentCellScannerFunction& alignment_cell_scanner,
     AlignmentPolicy alignment_policy);
 
+static const AlignmentColumnProperties FlushLeft(true);
+static const AlignmentColumnProperties FlushRight(false);
 
 class TkgkScanner : public ColumnSchemaScanner {
   public:
@@ -295,11 +300,47 @@ class TkgkScanner : public ColumnSchemaScanner {
 
     void Visit(const SyntaxTreeNode& node) override {
       std::cout << "NODE: " << verilog::NodeEnumToString(static_cast<verilog::NodeEnum>(node.Tag().tag)) << std::endl;
+
+
       TreeContextPathVisitor::Visit(node);
     }
     void Visit(const SyntaxTreeLeaf& leaf) override {
       std::cout << "LEAF: " << verilog::NodeEnumToString(static_cast<verilog::NodeEnum>(leaf.Tag().tag)) << std::endl;
+      //const int tag = leaf.get().token_enum();
+      auto tag = static_cast<verilog::NodeEnum>(leaf.Tag().tag);
+      switch (tag) {
+	case verilog::NodeEnum::kNetVariableDeclarationAssign:
+	  VLOG(0) << "kNetVariableDeclarationAssign";
+
+	  ReserveNewColumn(leaf, FlushLeft);
+	  break;
+	case verilog::NodeEnum::kPropertyCaseItemList:
+	  VLOG(0) << "kPropertyCaseItemList";
+	  break;
+	default:
+	  VLOG(0) << "Break";
+	  //ReserveNewColumn(leaf, FlushLeft);
+	  break;
+      }
     }
+
+    void Visit(const UnwrappedLine& line) {
+	  //auto tag = NodeEnum(node.Tag().tag);
+	  //const Symbol* origin = ABSL_DIE_IF_NULL(unwrapped_line.Origin());
+
+	  VLOG(0) << " --- VISIT tkgk tokens ---  " << StringSpanOfSymbol(*line.Origin());
+      for (auto i : line.TokensRange()) {
+	if(i.format_token_enum == 13) {
+	  VLOG(0) << "TOKEN: " << i.ToString();
+	  //PreFormatToken->TokenInfo
+	  //Write function for reserving columns
+	  ReserveNewColumn(*i.token, FlushLeft);
+	}
+      }
+
+      //std::cout << "LEAF: " << verilog::NodeEnumToString(static_cast<verilog::NodeEnum>(leaf.Tag().tag)) << std::endl;
+    }
+
 };
 
 // Instantiates a ScannerType (implements ColumnSchemaScanner) and extracts
@@ -317,25 +358,107 @@ std::vector<ColumnPositionEntry> ScanPartitionForAlignmentCells(
   const Symbol* origin = ABSL_DIE_IF_NULL(unwrapped_line.Origin());
 
   // XXX
-  std::cout << " --- start tkgk tokens --- \n";
-  for (auto i : unwrapped_line.TokensRange()) {
+  //std::cout << " --- start tkgk tokens --- \n";
+/*  for (auto i : unwrapped_line.TokensRange()) {
     std::cout << "TOKEN: " << i.ToString() << "\n";
-  }
+  }*/
 
-  std::cout << " --- end tkgk tokens --- \n";
+  //std::cout << " --- end tkgk tokens --- \n";
+
+  ScannerType scanner;
+  //scanner.Visit(unwrapped_line);
+  VLOG(0) << __FUNCTION__;
+  origin->Accept(&scanner);
+
+
 # if 0
   // --------------
-  std::cout << " --- start tkgk scanner --- \n";
+  VLOG(0) << " --- start tkgk scanner --- ";
   TkgkScanner tkgk_scanner;
-  origin->Accept(&tkgk_scanner);
-  std::cout << " --- end tkgk scanner --- \n";
+  tkgk_scanner.Visit(unwrapped_line);
+  //origin->Accept(&tkgk_scanner);
+  VLOG(0) << " --- end tkgk scanner --- ";
 # endif
   // XXX
 
-  ScannerType scanner;
-  origin->Accept(&scanner);
+
+  VLOG(0) << " end of " <<  __FUNCTION__;
   return scanner.SparseColumns();
 }
+
+// Also uses a non-tree column scanning function, whose columns are concatenated with those from the above function.
+template <class ScannerType>
+std::vector<ColumnPositionEntry> ScanPartitionForAlignmentCells_IncludingTrailingNonTreeTokens(
+    const TokenPartitionTree& row,
+    const std::function<std::vector<ColumnPositionEntry>(TokenRange)> non_tree_column_scanner) {
+  // re-use existing scanner
+  VLOG(0) << __FUNCTION__;
+  auto column_entries_from_syntax_tree = ScanPartitionForAlignmentCells<ScannerType>(row);
+  const UnwrappedLine& unwrapped_line = row.Value();
+  const Symbol* origin = ABSL_DIE_IF_NULL(unwrapped_line.Origin());
+  // Identify the last token covered by the origin tree.
+  const SyntaxTreeLeaf* last_leaf = GetRightmostLeaf(*origin);
+  const TokenInfo last_tree_token = last_leaf->get();
+  //const auto range_begin = unwrapped_line.TokensRange().begin();
+  //auto range_end = unwrapped_line.TokensRange().end();
+  VLOG(0) << last_tree_token.text() << "   " << last_tree_token.token_enum();
+
+  // Construct a TokenRange 'remainder' that starts after the last tree token, and spans the rest of the UnwrappedLine.
+  TokenSequence non_tree_tokens;
+  //TokenRange remainder;
+  bool non_tree_flag = false;
+  int offset = 0;
+  for (auto i : unwrapped_line.TokensRange()) {
+
+    if (non_tree_flag) {
+      non_tree_tokens.push_back(*i.token);
+      VLOG(0) << "TOKEN: " << i.ToString() << "\n";
+    }
+
+    if (*i.token == last_tree_token) {
+      VLOG(0) << "FOUND TOKEN: " << i.ToString() << "\n";
+      non_tree_flag = true;
+    }
+  }
+
+  //std::vector<ColumnPositionEntry> trailing_column_entries;
+  auto remainder2 = make_range<TokenSequence::const_iterator>(non_tree_tokens.begin(), non_tree_tokens.end());
+
+  const auto& node = SymbolCastToNode(*origin);
+  const auto& children = node.children();
+  auto tag = NodeEnum(node.Tag().tag);
+  VLOG(0) << "Children.size() " << children.size() << " TAG: " << tag;
+
+  //const std::vector<SymbolPtr> children = origin->mutable_children();
+  SyntaxTreePath path_;
+  size_t column = children.size() - 1;
+  path_.push_back(column);
+  AlignmentColumnProperties properties = FlushLeft;
+  ColumnPositionEntry test{path_, non_tree_tokens.back(), properties};
+
+  VLOG(0) << "DEBUG " << non_tree_tokens.back().ToString();
+
+  column_entries_from_syntax_tree.emplace_back(test);
+
+  //const auto trailing_column_entries = non_tree_column_scanner(remainder2);
+  // concatenate column_entries_from_syntax_tree + trailing_column_entries and return.
+  return column_entries_from_syntax_tree;
+}
+
+// Adapter that accepts a tree scanner class and a trailing token scanner function.
+// Could be an overload of existing AlignmentCellScannerGenerator or named differently, up to you.
+template <class ScannerType>
+AlignmentCellScannerFunction AlignmentCellScannerGenerator(const std::function<std::vector<ColumnPositionEntry>(TokenRange)> non_tree_column_scanner) {
+  return [non_tree_column_scanner](const TokenPartitionTree& row) {
+    return ScanPartitionForAlignmentCells_IncludingTrailingNonTreeTokens<ScannerType>(row, non_tree_column_scanner);
+  };
+}
+/*template <class ScannerType>
+AlignmentCellScannerFunction AlignmentCellScannerGenerator2() {
+  return [](const TokenPartitionTree& row) {
+    return ScanPartitionForAlignmentCells_IncludingTrailingNonTreeTokens<ScannerType>(row);
+  };
+}*/
 
 // Convenience function for generating alignment cell scanners.
 // This can be useful for constructing maps of scanners based on type.

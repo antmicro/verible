@@ -458,13 +458,17 @@ static verible::TokenSequence::const_iterator StopAtLastNewlineBeforeTreeLeaf(
         have_last_newline = true;
         last_newline = token_iter;
         ABSL_FALLTHROUGH_INTENDED;
+	VLOG(0) << "    TK_NEWLINE!!!!!";
       case TK_SPACE:
       case TK_EOL_COMMENT:
       case TK_COMMENT_BLOCK:
       case TK_ATTRIBUTE:
         ++token_iter;
+	VLOG(0) << "    TK_EOL_COMMENT!!!!!";
         break;
       default:
+
+	VLOG(0) << "    default!!!!!";
         break_while = true;
         break;
     }
@@ -484,6 +488,8 @@ void TreeUnwrapper::LookAheadBeyondCurrentNode() {
   const auto token_begin = NextUnfilteredToken();
   const auto token_end =
       StopAtLastNewlineBeforeTreeLeaf(token_begin, token_context_);
+
+  VLOG(4) << "stop after: " << VerboseToken(*token_begin);
   VLOG(4) << "stop before: " << VerboseToken(*token_end);
   while (NextUnfilteredToken() != token_end) {
     // Almost like AdvanceLastVisitedLeaf(), except suppress the last
@@ -1056,8 +1062,11 @@ void TreeUnwrapper::SetIndentationsAndCreatePartitions(
       if (Context().IsInside(NodeEnum::kClassHeader) ||
           // kModuleHeader covers interfaces and programs
           Context().IsInside(NodeEnum::kModuleHeader)) {
+	VLOG(0) << "   Start VisitIndentedSection!!!!";
         VisitIndentedSection(node, indent,
                              PartitionPolicyEnum::kTabularAlignment);
+
+	VLOG(0) << "   End of  VisitIndentedSection!!!!";
       } else {
         VisitIndentedSection(node, indent,
                              PartitionPolicyEnum::kFitOnLineElseExpand);
@@ -1127,6 +1136,8 @@ void TreeUnwrapper::SetIndentationsAndCreatePartitions(
       //     PartitionPolicyEnum::kFitOnLineElseExpand);
     }
   }
+
+  VLOG(3) << "   end of " << __FUNCTION__ << " node: " << tag;
 }
 
 static bool PartitionStartsWithSemicolon(const TokenPartitionTree& partition) {
@@ -1863,11 +1874,14 @@ void TreeUnwrapper::Visit(const verible::SyntaxTreeLeaf& leaf) {
           }) ||
           (current_context_.DirectParentIs(NodeEnum::kOpenRangeList) &&
            current_context_.IsInside(NodeEnum::kConcatenationExpression))) {
+
+	VLOG(0) << "   MERGE1!!!";
         MergeLastTwoPartitions();
       } else if (CurrentUnwrappedLine().Size() == 1) {
         // Partition would begin with a comma,
         // instead add this token to previous partition
         MergeLastTwoPartitions();
+	VLOG(0) << "   MERGE2!!!";
       }
       break;
     }

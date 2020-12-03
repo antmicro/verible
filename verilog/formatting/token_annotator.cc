@@ -781,6 +781,7 @@ static WithReason<SpacingOptions> BreakDecisionBetween(
     auto pos = preceding_whitespace.find_first_of('\n', 0);
     if (pos == absl::string_view::npos) {
       // There are other tokens on this line
+      // HEre can be MustWrap
       return {SpacingOptions::MustAppend,
               "EOL comment cannot break from "
               "tokens to the left on its line"};

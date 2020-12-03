@@ -466,7 +466,10 @@ static void DisableSyntaxBasedRanges(ByteOffsetSet* disabled_ranges,
 Status Formatter::Format(const ExecutionControl& control) {
   const absl::string_view full_text(text_structure_.Contents());
   const auto& token_stream(text_structure_.TokenStream());
+  static int counter;
+  VLOG(0) << counter << "\n" << full_text;
 
+  counter++;
   // Initialize auxiliary data needed for TreeUnwrapper.
   UnwrapperData unwrapper_data(token_stream);
 
@@ -484,6 +487,7 @@ Status Formatter::Format(const ExecutionControl& control) {
     AnnotateFormattingInformation(style_, text_structure_,
                                   &unwrapper_data.preformatted_tokens);
 
+    VLOG(0) << "      DisableFormattingRanges";
     // Determine ranges of disabling the formatter, based on comment controls.
     disabled_ranges_.Union(DisableFormattingRanges(full_text, token_stream));
 
@@ -500,6 +504,7 @@ Status Formatter::Format(const ExecutionControl& control) {
 
     // Partition PreFormatTokens into candidate unwrapped lines.
     format_tokens_partitions = tree_unwrapper.Unwrap();
+    VLOG(0) << "       End of Unwrap()";
   }
 
   {
@@ -533,6 +538,7 @@ Status Formatter::Format(const ExecutionControl& control) {
           verible::ReshapeFittingSubpartitions(&node, style_);
           break;
         case PartitionPolicyEnum::kTabularAlignment:
+	  VLOG(0) << "     kTabularAlignment";
           // TODO(b/145170750): Adjust inter-token spacing to achieve alignment,
           // but leave partitioning intact.
           // This relies on inter-token spacing having already been annotated.
@@ -546,6 +552,7 @@ Status Formatter::Format(const ExecutionControl& control) {
     });
   }
 
+  VLOG(0) << "       End of ApplyPreOrder";
   // Produce sequence of independently operable UnwrappedLines.
   const auto unwrapped_lines = MakeUnwrappedLinesWorklist(
       *format_tokens_partitions, &unwrapper_data.preformatted_tokens, full_text,

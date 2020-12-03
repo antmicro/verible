@@ -147,9 +147,26 @@ void ColumnSchemaScanner::ReserveNewColumn(
     // adding a new column.
     sparse_columns_.push_back(
         ColumnPositionEntry{path, leaf->get(), properties});
-    VLOG(2) << "reserving new column at " << TreePathFormatter(path);
+    VLOG(2) << "reserving new column at " << TreePathFormatter(path) << "  " << sparse_columns_.size();
   }
 }
+
+
+void ColumnSchemaScanner::ReserveNewColumn(const TokenInfo& token, const AlignmentColumnProperties& properties) {
+
+
+    SyntaxTreePath path_;
+    size_t tmp = 5;
+    path_.push_back(tmp);
+
+
+    sparse_columns_.push_back(
+        ColumnPositionEntry{path_, token, properties});
+    VLOG(2) << "reserving new column at " << TreePathFormatter(path_) << "  " << sparse_columns_.size();
+
+
+}
+
 
 struct AggregateColumnData {
   // This is taken as the first seen set of properties in any given column.
@@ -172,8 +189,11 @@ struct AggregateColumnData {
 class ColumnSchemaAggregator {
  public:
   void Collect(const std::vector<ColumnPositionEntry>& row) {
+    int i = 1;
     for (const auto& cell : row) {
       cell_map_[cell.path].Import(cell);
+      VLOG(0) << "Collect: " << i << "   " << TreePathFormatter(cell.path);
+      i++;
     }
   }
 
@@ -242,6 +262,7 @@ static void FillAlignmentRow(
   auto token_iter = partition_token_range.begin();
   const auto token_end = partition_token_range.end();
   int last_column_index = 0;
+  VLOG(0) << (*token_iter).ToString();
   // Find each non-empty cell, and fill in other cells with empty ranges.
   for (const auto& col : sparse_columns) {
     pos_iter = std::find(pos_iter, cend, col.path);
@@ -257,6 +278,10 @@ static void FillAlignmentRow(
         std::find_if(token_iter, token_end, [=](const PreFormatToken& ftoken) {
           return BoundsEqual(ftoken.Text(), col.starting_token.text());
         });
+    VLOG(0) << "-------------";
+    VLOG(0) << (*token_iter).ToString();
+    VLOG(0) << (*token_end).ToString();
+    VLOG(0) << "-------------";
     CHECK(token_iter != token_end);
 
     // Fill null-range cells between [last_column_index, column_index).
@@ -418,6 +443,7 @@ static MutableFormatTokenRange ConvertToMutableFormatTokenRange(
     const FormatTokenRange& const_range,
     MutableFormatTokenRange::iterator base) {
   using array_type = std::vector<PreFormatToken>;
+  VLOG(0) << __FUNCTION__;
   return MutableFormatTokenRange(
       ConvertToMutableIterator<array_type>(const_range.begin(), base),
       ConvertToMutableIterator<array_type>(const_range.end(), base));
@@ -460,6 +486,7 @@ static MutableFormatTokenRange GetMutableFormatTokenRange(
   const Symbol* origin = ABSL_DIE_IF_NULL(unwrapped_line.Origin());
   VLOG(2) << "row: " << StringSpanOfSymbol(*origin);
 
+
   // Partition may contain text that is outside of the span of the syntax
   // tree node that was visited, e.g. a trailing comma delimiter.
   // Exclude those tokens from alignment consideration (for now).
@@ -471,6 +498,7 @@ static MutableFormatTokenRange GetMutableFormatTokenRange(
     --range_end;
   CHECK(range_begin <= range_end);
 
+  VLOG(2) << "     After check!";
   // Scan each token-range for cell boundaries based on syntax,
   // and establish partial ordering based on syntax tree paths.
   return ConvertToMutableFormatTokenRange(
@@ -545,10 +573,26 @@ AlignablePartitionGroup::CalculateAlignmentSpacings(
   // Simultaneously step through each node's tree, adding a column to the
   // schema if *any* row wants it.  This captures optional and repeated
   // constructs.
+  VLOG(2) << "     MY LOG!!!  " << rows.size();
   for (const auto& row : rows) {
     // Each row should correspond to an individual list element
     const UnwrappedLine& unwrapped_line = row->Value();
+    const Symbol* origin = ABSL_DIE_IF_NULL(unwrapped_line.Origin());
 
+    const auto& node = SymbolCastToNode(*origin);
+    const auto& children = node.children();
+    auto tag = NodeEnum(node.Tag().tag);
+    VLOG(0) << "Children.size() " << children.size() << " TAG: " << tag << "   " << node.MatchesTag<verilog::NodeEnum>(verilog::NodeEnum::kPortDeclarationList);
+
+    /*PreFormatToken cmd;
+    for (auto i : unwrapped_line.TokensRange()) {
+     VLOG(0) << "TOKEN: " << i.ToString() << "\n";
+     if(i.format_token_enum == 13) {
+	     cmd = i;
+     }
+    }*/
+
+    VLOG(0) << " create row_data";
     const AlignmentRowData row_data{
         // Extract the range of format tokens whose spacings should be adjusted.
         GetMutableFormatTokenRange(unwrapped_line, ftoken_base),
@@ -556,7 +600,20 @@ AlignablePartitionGroup::CalculateAlignmentSpacings(
         // and establish partial ordering based on syntax tree paths.
         cell_scanner_gen(*row)};
 
+    /*static AlignmentColumnProperties FlushLeft(true);
+    SyntaxTreePath path_;
+    size_t column = 4;
+    path_.push_back(column);
+    AlignmentColumnProperties properties = FlushLeft;
+    ColumnPositionEntry test{path_, *cmd.token, properties};*/
+
+    //row_data.sparse_columns.emplace_back(test);
+    //const AlignmentRowData row_data{ };
+    VLOG(0) << "after row_data";
+    VLOG(0) << row_data.sparse_columns.size();
     alignment_row_data.emplace_back(row_data);
+
+    VLOG(0) << " Collect";
     // Aggregate union of all column keys (syntax tree paths).
     column_schema.Collect(row_data.sparse_columns);
   }
@@ -806,6 +863,7 @@ void AlignablePartitionGroup::Align(
       IndentButPreserveOtherSpacing(partition_range, full_text, ftokens);
       break;
   }
+  VLOG(0) << "          " << full_text;
 }
 
 void TabularAlignTokens(

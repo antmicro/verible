@@ -48,18 +48,22 @@ ByteOffsetSet DisableFormattingRanges(absl::string_view text,
   // By default, no text ranges are formatter-disabled.
   int begin_disable_offset = kNullOffset;
   ByteOffsetSet disable_set;
+  //return disable_set;
   for (const auto& token : tokens) {
     VLOG(2) << verible::TokenWithContext{token, context};
     const auto vtoken_enum = verilog_tokentype(token.token_enum());
     if (IsComment(vtoken_enum)) {
+      VLOG(0) << "Comment";
       // Focus on the space-delimited tokens in the comment text.
       auto commands = verible::StripCommentAndSpacePadding(token.text());
       if (absl::ConsumePrefix(&commands, kTrigger)) {
+	VLOG(0) << "ConsumePrefix";
         const std::vector<absl::string_view> comment_tokens(
             absl::StrSplit(commands, kDelimiters, absl::SkipEmpty()));
         if (!comment_tokens.empty()) {
           // "off" marks the start of a disabling range, at end of comment.
           // "on" marks the end of disabling range, up to the end of comment.
+	  VLOG(0) << "Comment token not empty";
           if (comment_tokens.front() == "off") {
             if (begin_disable_offset == kNullOffset) {
               begin_disable_offset = token.right(text);
@@ -84,6 +88,7 @@ ByteOffsetSet DisableFormattingRanges(absl::string_view text,
   if (begin_disable_offset != kNullOffset) {
     disable_set.Add({begin_disable_offset, static_cast<int>(text.length())});
   }
+  VLOG(2) << "      disable_set size: " << disable_set.size();
   return disable_set;
 }
 

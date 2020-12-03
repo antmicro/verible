@@ -38,6 +38,7 @@
 #include "verilog/CST/verilog_nonterminals.h"
 #include "verilog/parser/verilog_token_classifications.h"
 #include "verilog/parser/verilog_token_enum.h"
+//#include "common/formatting/align.h" // for ColumnPositionEntry
 
 namespace verilog {
 namespace formatter {
@@ -248,11 +249,16 @@ class ActualNamedPortColumnSchemaScanner : public ColumnSchemaScanner {
   }
 };
 
+
 // This class marks up token-subranges in port declarations for alignment.
 // e.g. "input wire clk,"
 class PortDeclarationColumnSchemaScanner : public ColumnSchemaScanner {
  public:
   PortDeclarationColumnSchemaScanner() = default;
+  ~PortDeclarationColumnSchemaScanner() {
+	  VLOG(0) << "Delete PortDeclarationColumnSchemaScanner";
+
+  }
 
   void Visit(const SyntaxTreeNode& node) override {
     auto tag = NodeEnum(node.Tag().tag);
@@ -292,6 +298,8 @@ class PortDeclarationColumnSchemaScanner : public ColumnSchemaScanner {
       case NodeEnum::kUnqualifiedId:
         if (Context().DirectParentIs(NodeEnum::kPortDeclaration)) {
           ReserveNewColumn(node, FlushLeft);
+
+//	  VLOG(0) << "kunqualifiedid node !!!!!";
         }
         break;
       case NodeEnum::kExpression:
@@ -306,10 +314,15 @@ class PortDeclarationColumnSchemaScanner : public ColumnSchemaScanner {
     // recursive visitation
     TreeContextPathVisitor::Visit(node);
     VLOG(2) << __FUNCTION__ << ", leaving node: " << tag;
+    if (tag == NodeEnum::kPortDeclaration) {
+	    VLOG(0) << "Reserve at the end";
+
+
+    }
   }
 
-  void Visit(const SyntaxTreeLeaf& leaf) override {
-    VLOG(2) << __FUNCTION__ << ", leaf: " << leaf.get() << " at "
+  virtual void Visit(const SyntaxTreeLeaf& leaf) override {
+    VLOG(0) << __FUNCTION__ << ", leaf: " << leaf.get() << " at "
             << TreePathFormatter(Path());
     if (new_column_after_open_bracket_) {
       ReserveNewColumn(leaf, FlushRight);
@@ -366,6 +379,11 @@ class PortDeclarationColumnSchemaScanner : public ColumnSchemaScanner {
         }
         break;
       }
+      case ',': {
+	VLOG(0) << "  ,   ReserveNewColumn ";
+//        ReserveNewColumn(leaf, FlushLeft);
+	break;
+      }
       // TODO(b/70310743): Treat "[...:...]" as 5 columns.
       // Treat "[...]" (scalar) as 3 columns.
       // TODO(b/70310743): Treat the ... as a multi-column cell w.r.t.
@@ -381,6 +399,40 @@ class PortDeclarationColumnSchemaScanner : public ColumnSchemaScanner {
   // This is useful for aligning after punctation marks.
   bool new_column_after_open_bracket_ = false;
 };
+
+class TkgkScanner : public PortDeclarationColumnSchemaScanner {
+  public:
+    TkgkScanner() = default;
+
+    void Visit(const SyntaxTreeNode& node) override {
+      std::cout << "NODE: " << verilog::NodeEnumToString(static_cast<verilog::NodeEnum>(node.Tag().tag)) << std::endl;
+      TreeContextPathVisitor::Visit(node);
+    }
+    void Visit(const SyntaxTreeLeaf& leaf) override {
+      std::cout << "LEAF: " << verilog::NodeEnumToString(static_cast<verilog::NodeEnum>(leaf.Tag().tag)) << std::endl;
+      const int tag = leaf.get().token_enum();
+      /*switch (tag) {
+	case NodeEnum::kNetVariableDeclarationAssign:
+	  VLOG(0) << "Reserve new column";
+	  ReserveNewColumn(leaf, FlushLeft);
+	  break;
+	default:
+	  break;
+      }*/
+    }
+
+    /*void Visit(const UnwrappedLine& line) {
+	  std::cout << " --- VISIT tkgk tokens --- \n";
+      for (auto i : line.TokensRange()) {
+	std::cout << "TOKEN: " << i.ToString() << "\n";
+      }
+
+      //std::cout << "LEAF: " << verilog::NodeEnumToString(static_cast<verilog::NodeEnum>(leaf.Tag().tag)) << std::endl;
+    }*/
+
+};
+
+
 
 static bool IsAlignableDeclaration(const SyntaxTreeNode& node) {
   // A data/net/variable declaration is alignable if:
@@ -1048,6 +1100,28 @@ std::function<MemberType(const StructType&)> function_from_pointer_to_member(
 using AlignmentHandlerMapType =
     std::map<AlignableSyntaxSubtype, AlignmentGroupHandlers>;
 
+/*auto non_tree_column_scanner = [](verible::TokenRange range) {
+    std::vector<verible::ColumnPositionEntry> test;
+
+    VLOG(0) << __FUNCTION__;
+    return test;
+};*/
+
+std::vector<verible::ColumnPositionEntry> non_tree_column_scanner(verible::TokenRange token_range) {
+
+    std::vector<verible::ColumnPositionEntry> trailing_column_entries;
+    VLOG(0) << __FUNCTION__;
+
+    for (auto token : token_range) {
+
+	VLOG(0) << token.ToString();
+
+    }
+
+
+    return trailing_column_entries;
+}
+
 // Global registry of all known alignment handlers for Verilog.
 // This organization lets the same handlers be re-used in multiple syntactic
 // contexts, e.g. data declarations can be module items and generate items and
@@ -1072,7 +1146,7 @@ static const AlignmentHandlerMapType& AlignmentHandlerLibrary() {
         function_from_pointer_to_member(
             &FormatStyle::formal_parameters_alignment)}},
       {AlignableSyntaxSubtype::kPortDeclaration,
-       {AlignmentCellScannerGenerator<PortDeclarationColumnSchemaScanner>(),
+       {AlignmentCellScannerGenerator<PortDeclarationColumnSchemaScanner>(non_tree_column_scanner),
         function_from_pointer_to_member(
             &FormatStyle::port_declarations_alignment)}},
       {AlignableSyntaxSubtype::kClassMemberVariables,
@@ -1129,9 +1203,11 @@ static std::vector<AlignablePartitionGroup> ExtractAlignablePartitionGroups(
         const TokenPartitionRange&)>& group_extractor,
     const verible::IgnoreAlignmentRowPredicate& ignore_group_predicate,
     const TokenPartitionRange& full_range, const FormatStyle& vstyle) {
+  VLOG(2) << "   " << __FUNCTION__;
   const std::vector<TaggedTokenPartitionRange> ranges(
       group_extractor(full_range));
   std::vector<AlignablePartitionGroup> groups;
+  VLOG(0) << "ranges.size() " << ranges.size();
   groups.reserve(ranges.size());
   for (const auto& range : ranges) {
     // Use the alignment scanner and policy that correspond to the
@@ -1143,6 +1219,8 @@ static std::vector<AlignablePartitionGroup> ExtractAlignablePartitionGroups(
         AlignmentPolicySelector(vstyle, range.match_subtype)});
     if (groups.back().IsEmpty()) groups.pop_back();
   }
+
+  VLOG(2) << "   end of" << __FUNCTION__;
   return groups;
 }
 
@@ -1152,6 +1230,7 @@ using AlignSyntaxGroupsFunction =
 
 static std::vector<AlignablePartitionGroup> AlignPortDeclarations(
     const TokenPartitionRange& full_range, const FormatStyle& vstyle) {
+  VLOG(0) << __FUNCTION__;
   return ExtractAlignablePartitionGroups(
       PartitionBetweenBlankLines(AlignableSyntaxSubtype::kPortDeclaration),
       &IgnoreWithinPortDeclarationPartitionGroup, full_range, vstyle);
@@ -1273,8 +1352,12 @@ void TabularAlignTokenPartitions(TokenPartitionTree* partition_ptr,
   VLOG(1) << "extracting alignment partition groups...";
   const std::vector<AlignablePartitionGroup> alignment_groups(
       alignment_partitioner(subpartitions_range, style));
+
+  VLOG(1) << "     LOOP1";
   for (const auto& alignment_group : alignment_groups) {
+    VLOG(1) << "     LOOP2";
     const TokenPartitionRange partition_range(alignment_group.Range());
+    VLOG(1) << "     LOOP3";
     if (partition_range.empty()) continue;
     if (AnyPartitionSubRangeIsDisabled(partition_range, full_text,
                                        disabled_byte_ranges)) {
@@ -1282,6 +1365,7 @@ void TabularAlignTokenPartitions(TokenPartitionTree* partition_ptr,
       // due to incremental formatting, then leave the new lines
       // unformatted rather than falling back to compact-left formatting.
       // However, allow the first token to be correctly indented.
+      VLOG(1) << "     LOOP4";
       IndentButPreserveOtherSpacing(partition_range, full_text, ftokens);
       continue;
 
@@ -1293,10 +1377,11 @@ void TabularAlignTokenPartitions(TokenPartitionTree* partition_ptr,
       // TODO(b/159824483): attempt to detect and re-use pre-existing alignment
     }
 
+    VLOG(1) << "     LOOP5\n" << full_text;
     // Calculate alignment and possibly apply it depending on alignment policy.
     alignment_group.Align(full_text, style.column_limit, ftokens);
   }
-  VLOG(1) << "end of " << __FUNCTION__;
+  VLOG(1) << "            end of " << __FUNCTION__;
 }
 
 }  // namespace formatter

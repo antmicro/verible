@@ -74,6 +74,7 @@ absl::string_view StripComment(absl::string_view text) {
   const absl::string_view start = text.substr(0, 2);
   const absl::string_view end = text.substr(text.length() - 2);
   if (start == "//") {
+      VLOG(0) << "       StripComment";
     const auto ltrim = CountLeadingChars(text.substr(2), '/') + 2;
     return text.substr(ltrim);
   } else if (start == "/*" && end == "*/") {
@@ -84,10 +85,12 @@ absl::string_view StripComment(absl::string_view text) {
 }
 
 absl::string_view StripCommentAndSpacePadding(absl::string_view text) {
+  VLOG(0) << "   " << text;
   const auto stripped_text = StripComment(text);
   CHECK(verible::IsSubRange(stripped_text, text));
   const auto return_text = absl::StripAsciiWhitespace(stripped_text);
   CHECK(verible::IsSubRange(return_text, stripped_text));
+  VLOG(0) << "   " << text;
   return return_text;
 }
 

@@ -295,6 +295,8 @@ void PreserveSpacesOnDisabledTokenRanges(
     // start next iteration search from previous iteration's end
     saved_iter = disable_range.end();
   }
+
+  VLOG(2) << "   end of " << __FUNCTION__;
 }
 
 }  // namespace verible

@@ -297,9 +297,11 @@ TreeUnwrapper::VisitIndentedChildren(const SyntaxTreeNode& node,
       &current_indentation_spaces_,
       current_indentation_spaces_ + indentation_delta);
 
+  VLOG(0) << "    start StartNewUnwrappedLine in VisitIndentedChildren";
   // Mark a new sibling at the new indentation level, apply partition policy.
   StartNewUnwrappedLine(partitioning, &node);
 
+  VLOG(0) << "    end of StartNewUnwrappedLine in VisitIndentedChildren";
   // Start first child right away.
   const ValueSaver<TokenPartitionTree*> tree_saver(
       &active_unwrapped_lines_,
@@ -324,17 +326,22 @@ TreeUnwrapper::VisitIndentedChildren(const SyntaxTreeNode& node,
 void TreeUnwrapper::VisitIndentedSection(const SyntaxTreeNode& node,
                                          int indentation_delta,
                                          PartitionPolicyEnum partitioning) {
+  VLOG(0) << "    start VisitIndentedChildren";
   const auto last_ftoken_iter =
       VisitIndentedChildren(node, indentation_delta, partitioning);
 
+  VLOG(0) << "    end of VisitIndentedChildren";
   // TODO(fangism): do we ever need to remove trailing empty partitions here?
 
   // Update parent's end() format token iterator to match that of
   // its last child.  It can still be advanced later.
   active_unwrapped_lines_->Value().SpanUpToToken(last_ftoken_iter);
 
+  VLOG(0) << "    start StartNewUnwrappedLine in VisitIndentedSection";
   // Start new empty UnwrappedLine at the previous indentation level.
   StartNewUnwrappedLine(PartitionPolicyEnum::kUninitialized, nullptr);
+
+  VLOG(0) << "    end of StartNewUnwrappedLine in VisitIndentedSection";
 }
 
 std::ostream& operator<<(std::ostream& stream, const TreeUnwrapper& unwrapper) {
