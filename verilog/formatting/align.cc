@@ -191,6 +191,7 @@ class ActualNamedParameterColumnSchemaScanner : public ColumnSchemaScanner {
   ActualNamedParameterColumnSchemaScanner() = default;
 
   void Visit(const SyntaxTreeNode& node) override {
+  std::cout << "tkgk: " << __LINE__ << std::endl;
     auto tag = NodeEnum(node.Tag().tag);
     VLOG(2) << __FUNCTION__ << ", node: " << tag << " at "
             << TreePathFormatter(Path());
@@ -211,6 +212,9 @@ class ActualNamedParameterColumnSchemaScanner : public ColumnSchemaScanner {
     }
     TreeContextPathVisitor::Visit(node);
     VLOG(2) << __FUNCTION__ << ", leaving node: " << tag;
+  }
+  void Visit(const SyntaxTreeLeaf& leaf) override {
+  std::cout << "tkgk: " << __LINE__ << std::endl;
   }
 };
 
@@ -1105,6 +1109,7 @@ static const AlignmentHandlerMapType& AlignmentHandlerLibrary() {
 static verible::AlignmentCellScannerFunction AlignmentColumnScannerSelector(
     int subtype) {
   static const auto& handler_map = AlignmentHandlerLibrary();
+  std::cout << "tkgk: " << __LINE__ << std::endl;
   const auto iter = handler_map.find(AlignableSyntaxSubtype(subtype));
   CHECK(iter != handler_map.end()) << "subtype: " << subtype;
   return iter->second.column_scanner;
@@ -1113,6 +1118,7 @@ static verible::AlignmentCellScannerFunction AlignmentColumnScannerSelector(
 static verible::AlignmentPolicy AlignmentPolicySelector(
     const FormatStyle& vstyle, int subtype) {
   static const auto& handler_map = AlignmentHandlerLibrary();
+  std::cout << "tkgk: " << __LINE__ << std::endl;
   const auto iter = handler_map.find(AlignableSyntaxSubtype(subtype));
   CHECK(iter != handler_map.end()) << "subtype: " << subtype;
   return iter->second.policy_func(vstyle);

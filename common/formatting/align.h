@@ -25,6 +25,7 @@
 #include "common/text/token_info.h"
 #include "common/text/tree_context_visitor.h"
 #include "common/util/logging.h"
+#include "verilog/CST/verilog_nonterminals.h"  // for NodeEnumToString
 
 namespace verible {
 
@@ -287,6 +288,20 @@ ExtractAlignmentGroupsFunction ExtractAlignmentGroupsAdapter(
     const AlignmentCellScannerFunction& alignment_cell_scanner,
     AlignmentPolicy alignment_policy);
 
+
+class TkgkScanner : public ColumnSchemaScanner {
+  public:
+    TkgkScanner() = default;
+
+    void Visit(const SyntaxTreeNode& node) override {
+      std::cout << "NODE: " << verilog::NodeEnumToString(static_cast<verilog::NodeEnum>(node.Tag().tag)) << std::endl;
+      TreeContextPathVisitor::Visit(node);
+    }
+    void Visit(const SyntaxTreeLeaf& leaf) override {
+      std::cout << "LEAF: " << verilog::NodeEnumToString(static_cast<verilog::NodeEnum>(leaf.Tag().tag)) << std::endl;
+    }
+};
+
 // Instantiates a ScannerType (implements ColumnSchemaScanner) and extracts
 // column alignment information, suitable as an AlignmentCellScannerFunction.
 // A 'row' corresponds to a range of format tokens over which spacing is to be
@@ -300,6 +315,23 @@ std::vector<ColumnPositionEntry> ScanPartitionForAlignmentCells(
   // Walk the original syntax tree that spans a subset of the tokens spanned by
   // this 'row', and detect the sparse set of columns found by the scanner.
   const Symbol* origin = ABSL_DIE_IF_NULL(unwrapped_line.Origin());
+
+  // XXX
+  std::cout << " --- start tkgk tokens --- \n";
+  for (auto i : unwrapped_line.TokensRange()) {
+    std::cout << "TOKEN: " << i.ToString() << "\n";
+  }
+
+  std::cout << " --- end tkgk tokens --- \n";
+# if 0
+  // --------------
+  std::cout << " --- start tkgk scanner --- \n";
+  TkgkScanner tkgk_scanner;
+  origin->Accept(&tkgk_scanner);
+  std::cout << " --- end tkgk scanner --- \n";
+# endif
+  // XXX
+
   ScannerType scanner;
   origin->Accept(&scanner);
   return scanner.SparseColumns();

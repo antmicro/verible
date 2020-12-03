@@ -29,6 +29,7 @@ cc_library(
         "//common/util:container_iterator_range",
         "//common/util:enum_flags",
         "//common/util:logging",
+        "//verilog/CST:verilog_nonterminals",
         "@com_google_absl//absl/strings",
     ],
 )

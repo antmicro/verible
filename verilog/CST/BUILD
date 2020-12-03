@@ -29,6 +29,7 @@ genrule(
 
 cc_library(
     name = "verilog_nonterminals",
+    visibility = ["//visibility:public"],
     srcs = [
         "verilog_nonterminals.cc",
         "verilog_nonterminals_foreach.inc",
