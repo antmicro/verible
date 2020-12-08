@@ -865,6 +865,12 @@ void TreeUnwrapper::SetIndentationsAndCreatePartitions(
       break;
     }
 
+    case NodeEnum::kWaitHeader:
+    case NodeEnum::kRepeatControl: {
+      VisitIndentedSection(node, 0, PartitionPolicyEnum::kFitOnLineElseExpand);
+      break;
+    }
+
     case NodeEnum::kReferenceCallBase: {
       // TODO(fangism): Create own section only for standalone calls
       if (Context().DirectParentIs(NodeEnum::kStatement)) {
@@ -886,7 +892,41 @@ void TreeUnwrapper::SetIndentationsAndCreatePartitions(
       } else if (Context().DirectParentIs(NodeEnum::kBinaryExpression)) {
         const auto& parent = Context().top();
         if (parent.children().size() == 3 && // I'm 99% sure that it's always true...
-            parent[2].get() == &node) { // FIXME: birthrank()
+            (parent[2].get() == &node || parent[2].get() == &node)) { // FIXME: birthrank()
+          {
+            // FIXME(ldk): Hacky as hell
+            class UglyVisitor : public verible::TreeVisitorRecursive {
+             public:
+              void Visit(const verible::SyntaxTreeNode&) override { /* ignore nodes */ };
+              void Visit(const verible::SyntaxTreeLeaf& leaf) override {
+                if (catchup_leaf == nullptr) {
+                  catchup_leaf = &leaf;
+                }
+              };
+
+              const verible::SyntaxTreeLeaf* catchup_leaf = nullptr;
+            };
+
+            UglyVisitor visitor;
+            node.Accept(&visitor);
+            if (visitor.catchup_leaf) {
+              CatchUpToCurrentLeaf(visitor.catchup_leaf->get());
+            }
+          }
+          VisitNewUnwrappedLine(node);
+        } else {
+          TraverseChildren(node);
+        }
+      } else {
+        TraverseChildren(node);
+      }
+      break;
+    }
+    case NodeEnum::kBinaryExpression: {
+      if (Context().DirectParentIs(NodeEnum::kBinaryExpression)) {
+        const auto& parent = Context().top();
+        if (parent.children().size() == 3 && // I'm 99% sure that it's always true...
+            (parent[2].get() == &node || parent[2].get() == &node)) { // FIXME: birthrank()
           {
             // FIXME(ldk): Hacky as hell
             class UglyVisitor : public verible::TreeVisitorRecursive {
@@ -1770,8 +1810,8 @@ void TreeUnwrapper::ReshapeTokenPartitions(
       // TODO(fangism): reshape for multiple assignments.
       verible::MergeConsecutiveSiblings(&partition, 0);
       VLOG(4) << "after merging 'assign':\n" << partition;
-      AdjustSubsequentPartitionsIndentation(&partition, style.wrap_spaces);
-      VLOG(4) << "after adjusting partitions indentation:\n" << partition;
+      //AdjustSubsequentPartitionsIndentation(&partition, style.wrap_spaces);
+      //VLOG(4) << "after adjusting partitions indentation:\n" << partition;
       break;
     }
     case NodeEnum::kForSpec: {
@@ -1901,6 +1941,18 @@ void TreeUnwrapper::ReshapeTokenPartitions(
                                                        // kDataDeclaration)
       })) {
     HoistOnlyChildPartition(&partition);
+  }
+
+  if (node.MatchesTagAnyOf({
+          //NodeEnum::kContinuousAssignmentStatement,
+          NodeEnum::kParamDeclaration,
+          NodeEnum::kNetVariableAssignment,
+          NodeEnum::kRepeatControl,
+          NodeEnum::kWaitHeader,
+      })) {
+    VLOG(1) << "pre:\n" << partition;
+    AdjustSubsequentPartitionsIndentation(&partition, style.wrap_spaces);
+    VLOG(1) << "post:\n" << partition;
   }
 
   VLOG(4) << "after reshaping " << tag << ":\n" << partition;
