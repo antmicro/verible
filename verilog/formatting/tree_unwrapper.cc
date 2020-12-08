@@ -884,7 +884,33 @@ void TreeUnwrapper::SetIndentationsAndCreatePartitions(
           TraverseChildren(node);
         }
       } else if (Context().DirectParentIs(NodeEnum::kBinaryExpression)) {
-        VisitIndentedSection(node, 0, PartitionPolicyEnum::kAppendFittingSubPartitions);
+        const auto& parent = Context().top();
+        if (parent.children().size() == 3 && // I'm 99% sure that it's always true...
+            parent[2].get() == &node) { // FIXME: birthrank()
+          {
+            // FIXME(ldk): Hacky as hell
+            class UglyVisitor : public verible::TreeVisitorRecursive {
+             public:
+              void Visit(const verible::SyntaxTreeNode&) override { /* ignore nodes */ };
+              void Visit(const verible::SyntaxTreeLeaf& leaf) override {
+                if (catchup_leaf == nullptr) {
+                  catchup_leaf = &leaf;
+                }
+              };
+
+              const verible::SyntaxTreeLeaf* catchup_leaf = nullptr;
+            };
+
+            UglyVisitor visitor;
+            node.Accept(&visitor);
+            if (visitor.catchup_leaf) {
+              CatchUpToCurrentLeaf(visitor.catchup_leaf->get());
+            }
+          }
+          VisitNewUnwrappedLine(node);
+        } else {
+          TraverseChildren(node);
+        }
       } else {
         TraverseChildren(node);
       }
@@ -1122,16 +1148,16 @@ void TreeUnwrapper::SetIndentationsAndCreatePartitions(
       break;
     }
 
-    case NodeEnum::kBinaryExpression: {
-      if (Context().DirectParentsAre({NodeEnum::kExpression, NodeEnum::kParenGroup})) {
-        VisitIndentedSection(node, style_.indentation_spaces,
-                             PartitionPolicyEnum::kFitOnLineElseExpand);
-      } else {
-        VisitIndentedSection(node, 0,
-                             PartitionPolicyEnum::kFitOnLineElseExpand);
-      }
-      break;
-    }
+    //case NodeEnum::kBinaryExpression: {
+    //  if (Context().DirectParentsAre({NodeEnum::kExpression, NodeEnum::kParenGroup})) {
+    //    VisitIndentedSection(node, style_.indentation_spaces,
+    //                         PartitionPolicyEnum::kFitOnLineElseExpand);
+    //  } else {
+    //    VisitIndentedSection(node, 0,
+    //                         PartitionPolicyEnum::kFitOnLineElseExpand);
+    //  }
+    //  break;
+    //}
 
     default: {
       TraverseChildren(node);
@@ -1173,6 +1199,26 @@ static bool PartitionIsCloseBrace(const TokenPartitionTree& partition) {
   if (ftokens.size() != 1) return false;
   const auto token_enum = ftokens.front().TokenEnum();
   return token_enum == '}';
+}
+
+static bool PartitionStartsWithBinaryOperator(const TokenPartitionTree& partition) {
+  const auto ftokens = partition.Value().TokensRange();
+  if (ftokens.empty()) return false;
+  const auto token_enum = ftokens.front().TokenEnum();
+  switch (token_enum) {
+    case '&':
+    case '|':
+    case '^':
+    case '-':
+    case '+':
+    case '<':
+    case '>':
+    case TK_EQ:  // "=="
+      return true;
+
+    default:
+      return false;
+  }
 }
 
 static void AttachTrailingSemicolonToPreviousPartition(
@@ -1654,21 +1700,21 @@ void TreeUnwrapper::ReshapeTokenPartitions(
       AttachTrailingSemicolonToPreviousPartition(&partition);
 
       // WIP:
-      {
-        auto& children = partition.Children();
-        if (children.size() == 3) {
-          const auto& pre  = children[0];
-          const auto& post = children[2];
-          auto& to_flatten = children[1];
+      //{
+      //  auto& children = partition.Children();
+      //  if (children.size() == 3) {
+      //    const auto& pre  = children[0];
+      //    const auto& post = children[2];
+      //    auto& to_flatten = children[1];
 
-          if (PartitionEndsWithOpenParen(pre) && PartitionStartsWithCloseParen(post)) {
-            AdjustIndentationAbsolute(&to_flatten, partition.Value().IndentationSpaces() + style.wrap_spaces);
-            partition.FlattenOnlyChildrenWithChildren();
+      //    if (PartitionEndsWithOpenParen(pre) && PartitionStartsWithCloseParen(post)) {
+      //      AdjustIndentationAbsolute(&to_flatten, partition.Value().IndentationSpaces() + style.wrap_spaces);
+      //      partition.FlattenOnlyChildrenWithChildren();
 
-            verible::MergeLeafIntoPreviousLeaf(partition.RightmostDescendant());
-          }
-        }
-      }
+      //      verible::MergeLeafIntoPreviousLeaf(partition.RightmostDescendant());
+      //    }
+      //  }
+      //}
 
       // RHS may have been further partitioned, e.g. a macro call.
       auto& children = partition.Children();
@@ -1804,12 +1850,17 @@ void TreeUnwrapper::ReshapeTokenPartitions(
       break;
     }
 
-    case NodeEnum::kBinaryExpression: {
-      verible::MergeLeafIntoPreviousLeaf(partition.Children()[1].LeftmostDescendant());
-      VLOG(4) << "after merging operator:\n" << partition;
-      partition.FlattenOnlyChildrenWithChildren();
-      break;
-    }
+    //case NodeEnum::kBinaryExpression: {
+    //  for (auto& itr : partition.Children()) {
+    //    if (PartitionStartsWithBinaryOperator(itr)) {
+    //      verible::MergeLeafIntoPreviousLeaf(itr.LeftmostDescendant());
+    //      break;
+    //    }
+    //  }
+    //  VLOG(4) << "after merging operator:\n" << partition;
+    //  partition.FlattenOnlyChildrenWithChildren();
+    //  break;
+    //}
 
     default:
       break;
