@@ -15,9 +15,11 @@
 #include "common/strings/naming_utils.h"
 
 #include <algorithm>
+#include <vector>
 
 #include "absl/strings/ascii.h"
 #include "absl/strings/string_view.h"
+#include "absl/strings/str_split.h"
 
 namespace verible {
 
@@ -65,4 +67,26 @@ bool IsLowerSnakeCaseWithDigits(absl::string_view text) {
   });
 }
 
+bool IsLowerSnakeCaseWithDigits(absl::string_view text,
+                                const std::vector<absl::string_view> &exceptions) {
+  if (text.empty()) return true;
+
+  // Check that the first letter is lowercase. Not allowing "_foo" cases.
+  if (!absl::ascii_islower(text[0])) return false;
+
+  const auto &text_split = absl::StrSplit(text, '_');
+  for(const auto &ts : text_split) {
+    if(std::find(exceptions.begin(), exceptions.end(), ts)
+        != exceptions.end()) {
+      continue;
+    }
+    // Check for anything that is not a lowercase letter, or digit.
+    bool r = std::all_of(ts.begin(), ts.end(), [](char c) {
+      return absl::ascii_islower(c) || absl::ascii_isdigit(c);
+    });
+
+    if(!r) return false;
+  }
+  return true;
+ }
 }  // namespace verible

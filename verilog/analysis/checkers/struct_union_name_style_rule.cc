@@ -16,13 +16,16 @@
 
 #include <set>
 #include <string>
+#include <vector>
 
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_split.h"
 #include "common/analysis/citation.h"
 #include "common/analysis/lint_rule_status.h"
 #include "common/analysis/matcher/bound_symbol_manager.h"
 #include "common/analysis/matcher/matcher.h"
+#include "common/text/config_utils.h"
 #include "common/strings/naming_utils.h"
 #include "common/text/symbol.h"
 #include "common/text/syntax_tree_context.h"
@@ -81,11 +84,23 @@ void StructUnionNameStyleRule::HandleSymbol(const verible::Symbol& symbol,
     }
     const auto* identifier_leaf = GetIdentifierFromTypeDeclaration(symbol);
     const auto name = ABSL_DIE_IF_NULL(identifier_leaf)->get().text();
-    if (!verible::IsLowerSnakeCaseWithDigits(name) ||
-        !absl::EndsWith(name, "_t")) {
-      violations_.insert(LintViolation(identifier_leaf->get(), msg, context));
+
+    const std::vector<absl::string_view> &exceptions = absl::StrSplit(raw_tokens, ',');
+    if (exceptions.size() == 0) {
+      if (verible::IsLowerSnakeCaseWithDigits(name) &&
+          absl::EndsWith(name, "_t")) return;
+    } else {
+      if (verible::IsLowerSnakeCaseWithDigits(name, exceptions) &&
+          absl::EndsWith(name, "_t")) return;
     }
+    violations_.insert(LintViolation(identifier_leaf->get(), msg, context));
   }
+}
+
+absl::Status StructUnionNameStyleRule::Configure(absl::string_view configuration) {
+  using verible::config::SetString;
+  return verible::ParseNameValues(
+      configuration, {{"exceptions", SetString(&raw_tokens)}});
 }
 
 LintRuleStatus StructUnionNameStyleRule::Report() const {

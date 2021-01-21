@@ -15,6 +15,8 @@
 #ifndef VERIBLE_COMMON_STRINGS_NAMING_UTILS_H_
 #define VERIBLE_COMMON_STRINGS_NAMING_UTILS_H_
 
+#include <vector>
+
 #include "absl/strings/string_view.h"
 
 namespace verible {
@@ -32,6 +34,10 @@ bool IsUpperCamelCaseWithDigits(absl::string_view);
 
 // Returns true if the string follows lower_snake_case naming convention.
 bool IsLowerSnakeCaseWithDigits(absl::string_view);
+
+// Returns true if the string follows lower_snake_case naming convention.
+bool IsLowerSnakeCaseWithDigits(absl::string_view, 
+                                const std::vector<absl::string_view> &exceptions);
 
 }  // namespace verible
 

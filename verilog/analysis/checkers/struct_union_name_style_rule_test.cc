@@ -31,6 +31,13 @@ namespace {
 using verible::LintTestCase;
 using verible::RunLintTestCases;
 
+TEST(StructUnionNameStyleRuleTest, Configuration) {
+  StructUnionNameStyleRule rule;
+  absl::Status status;
+  EXPECT_TRUE((status = rule.Configure("")).ok()) << status.message();
+  EXPECT_TRUE((status = rule.Configure("exceptions:12B,121GW")).ok()) << status.message();
+}
+
 TEST(StructUnionNameStyleRuleTest, ValidStructNames) {
   const std::initializer_list<LintTestCase> kTestCases = {
       {""},
