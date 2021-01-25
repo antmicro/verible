@@ -94,6 +94,10 @@ ABSL_FLAG(int, error_limit, 0,
 ABSL_FLAG(
     bool, verifytree, false,
     "Verifies that all tokens are parsed into tree, prints unmatched tokens");
+ABSL_FLAG(bool, show_diagnostic_context, false,
+          "prints an additional "
+          "line on which the diagnostic was found,"
+          "followed by a line with a position marker");
 
 using verible::ConcreteSyntaxTree;
 using verible::ParserVerifier;

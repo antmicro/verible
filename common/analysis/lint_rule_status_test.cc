@@ -172,7 +172,9 @@ void RunLintStatusesTest(const LintStatusTest& test) {
   std::ostringstream ss;
 
   LintStatusFormatter formatter(test.text);
-  formatter.FormatLintRuleStatuses(&ss, statuses, test.text, test.path);
+  const std::vector<absl::string_view> lines;
+  formatter.FormatLintRuleStatuses(&ss, statuses, test.text, test.path, lines,
+                                   false);
   auto result_parts = absl::StrSplit(ss.str(), '\n');
   auto part_iterator = result_parts.begin();
 

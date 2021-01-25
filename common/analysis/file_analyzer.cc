@@ -30,6 +30,7 @@
 #include "common/text/text_structure.h"
 #include "common/text/token_info.h"
 #include "common/text/token_stream_view.h"
+#include "common/util/spacer.h"
 
 namespace verible {
 
@@ -151,6 +152,7 @@ std::string FileAnalyzer::LinterTokenErrorMessage(
                   << " error (unexpected EOF) (syntax-error).";
   }
   // TODO(b/63893567): Explain syntax errors by inspecting state stack.
+
   if (!error_token.explanation.empty()) {
     output_stream << "  " << error_token.explanation;
   }

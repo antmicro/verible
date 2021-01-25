@@ -28,6 +28,7 @@
 #include "common/text/syntax_tree_context.h"
 #include "common/text/token_info.h"
 #include "common/text/tree_utils.h"
+#include "common/util/spacer.h"
 
 namespace verible {
 
@@ -73,7 +74,8 @@ struct LintViolationWithStatus {
 
 void LintStatusFormatter::FormatLintRuleStatuses(
     std::ostream* stream, const std::vector<LintRuleStatus>& statuses,
-    absl::string_view base, absl::string_view path) const {
+    absl::string_view base, absl::string_view path,
+    const std::vector<absl::string_view>& lines, bool show_context) const {
   std::set<LintViolationWithStatus> violations;
 
   // TODO(fangism): rewrite as a linear time merge of pre-ordered sub-sequences
@@ -86,7 +88,13 @@ void LintStatusFormatter::FormatLintRuleStatuses(
   for (auto violation : violations) {
     FormatViolation(stream, *violation.violation, base, path,
                     violation.status->url, violation.status->lint_rule_name);
+
     *stream << std::endl;
+    if (show_context) {
+      auto cursor = line_column_map_(violation.violation->token.left(base));
+      *stream << lines[cursor.line] << std::endl;
+      *stream << verible::Spacer(cursor.column) << "^" << std::endl;
+    }
   }
 }
 
