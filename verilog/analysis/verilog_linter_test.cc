@@ -27,14 +27,14 @@
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "common/util/file_util.h"
 #include "common/util/logging.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "verilog/analysis/default_rules.h"
 #include "verilog/analysis/verilog_analyzer.h"
 #include "verilog/analysis/verilog_linter_configuration.h"
@@ -66,8 +66,8 @@ class LintOneFileTest : public DefaultLinterConfigTestFixture,
 // Tests that nonexistent file is handled as a fatal error.
 TEST_F(LintOneFileTest, FileNotFound) {
   std::ostringstream output;
-  const int exit_code =
-      LintOneFile(&output, "FileNotFound.sv", config_, true, false, false);
+  const int exit_code = LintOneFile(&output, "FileNotFound.sv", config_, true,
+                                    false, false, false);
   EXPECT_EQ(exit_code, 2);
 }
 
@@ -81,11 +81,20 @@ TEST_F(LintOneFileTest, LintCleanFiles) {
   };
   for (const auto test_code : kTestCases) {
     const ScopedTestFile temp_file(testing::TempDir(), test_code);
-    std::ostringstream output;
-    const int exit_code =
-        LintOneFile(&output, temp_file.filename(), config_, true, false, false);
-    EXPECT_EQ(exit_code, 0);
-    EXPECT_TRUE(output.str().empty());  // silence
+    {
+      std::ostringstream output;
+      const int exit_code = LintOneFile(&output, temp_file.filename(), config_,
+                                        true, false, false, false);
+      EXPECT_EQ(exit_code, 0);
+      EXPECT_TRUE(output.str().empty());  // silence
+    }
+    {  // enable additional error context printing
+      std::ostringstream output;
+      const int exit_code = LintOneFile(&output, temp_file.filename(), config_,
+                                        true, false, false, true);
+      EXPECT_EQ(exit_code, 0);
+      EXPECT_TRUE(output.str().empty());  // silence
+    }
   }
 }
 
@@ -101,21 +110,28 @@ TEST_F(LintOneFileTest, SyntaxError) {
     {  // continue even with syntax error
       std::ostringstream output;
       const int exit_code = LintOneFile(&output, temp_file.filename(), config_,
-                                        true, false, false);
+                                        true, false, false, false);
+      EXPECT_EQ(exit_code, 0);
+      EXPECT_FALSE(output.str().empty());
+    }
+    {  // continue even with syntax error with additional error context
+      std::ostringstream output;
+      const int exit_code = LintOneFile(&output, temp_file.filename(), config_,
+                                        true, false, false, true);
       EXPECT_EQ(exit_code, 0);
       EXPECT_FALSE(output.str().empty());
     }
     {  // abort on syntax error
       std::ostringstream output;
       const int exit_code = LintOneFile(&output, temp_file.filename(), config_,
-                                        true, true, false);
+                                        true, true, false, false);
       EXPECT_EQ(exit_code, 1);
       EXPECT_FALSE(output.str().empty());
     }
     {  // ignore syntax error
       std::ostringstream output;
       const int exit_code = LintOneFile(&output, temp_file.filename(), config_,
-                                        false, false, false);
+                                        false, false, false, false);
       EXPECT_EQ(exit_code, 0);
       EXPECT_TRUE(output.str().empty());  // silence
     }
@@ -133,14 +149,14 @@ TEST_F(LintOneFileTest, LintError) {
     {  // continue even with lint error
       std::ostringstream output;
       const int exit_code = LintOneFile(&output, temp_file.filename(), config_,
-                                        true, false, false);
+                                        true, false, false, false);
       EXPECT_EQ(exit_code, 0) << "output:\n" << output.str();
       EXPECT_FALSE(output.str().empty());
     }
     {  // abort on lint error
       std::ostringstream output;
       const int exit_code = LintOneFile(&output, temp_file.filename(), config_,
-                                        true, false, true);
+                                        true, false, true, false);
       EXPECT_EQ(exit_code, 1) << "output:\n" << output.str();
       EXPECT_FALSE(output.str().empty());
     }
@@ -172,7 +188,7 @@ class VerilogLinterTest : public DefaultLinterConfigTestFixture,
     // lint success, so as long as we have a syntax tree (even if there
     // are errors), run the lint checks.
     const absl::Status lint_status = VerilogLintTextStructure(
-        &diagnostics, filename, content, config_, analyzer->Data());
+        &diagnostics, filename, content, config_, analyzer->Data(), false);
     return {lint_status, diagnostics.str()};
   }
 };
