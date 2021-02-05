@@ -22,10 +22,12 @@
 #include "common/analysis/citation.h"
 #include "common/analysis/lint_rule_status.h"
 #include "common/analysis/matcher/bound_symbol_manager.h"
+#include "common/analysis/matcher/core_matchers.h"
 #include "common/analysis/matcher/matcher.h"
 #include "common/text/symbol.h"
 #include "common/text/syntax_tree_context.h"
 #include "verilog/CST/verilog_matchers.h"  // IWYU pragma: keep
+#include "verilog/CST/identifier.h"
 #include "verilog/analysis/descriptions.h"
 #include "verilog/analysis/lint_rule_registry.h"
 #include "verilog/CST/verilog_nonterminals.h"
@@ -55,8 +57,8 @@ std::string DisableForkNoLabelsRule::GetDescription(DescriptionType description_
 }
 
 static const Matcher& DisableMatcher() {
-  static const Matcher matcher(NodekDisableStatement(
-      DisableStatementHasLabel()));
+  static const Matcher matcher(
+        NodekDisableStatement(DisableStatementHasLabel()));
   return matcher;
 }
 
@@ -64,6 +66,42 @@ void DisableForkNoLabelsRule::HandleSymbol(const verible::Symbol& symbol,
                                   const SyntaxTreeContext& context) {
   verible::matcher::BoundSymbolManager manager;
   if (DisableMatcher().Matches(symbol, &manager)) {
+    const auto disableLabels = FindAllSymbolIdentifierLeafs(symbol);
+    if(disableLabels.size() == 0)
+    {
+      return;
+    }
+    for(size_t i =0 ; i < context.size()-1; i++)
+    {
+      auto& n = *(reversed_view(context).begin()+i);
+      if(n->Tag().tag == static_cast<int>(NodeEnum::kSeqBlock))
+      {
+        for(const auto& ch : n->children())
+        {
+          if(ch.get()->Tag().tag == static_cast<int>(NodeEnum::kBegin))
+          {
+            const auto beginLabels = FindAllSymbolIdentifierLeafs(*ch);
+            if(beginLabels.size() == 0){
+              continue;
+            }
+            const auto beginLabel = SymbolCastToLeaf(*beginLabels[0].match);
+            const auto disableLabel = SymbolCastToLeaf(*disableLabels[0].match);
+            auto& n = *(reversed_view(context).begin()+i+1);
+            auto tag = n->Tag().tag;
+            if(tag == static_cast<int>(NodeEnum::kInitialStatement) 
+              || tag == static_cast<int>(NodeEnum::kFinalStatement)
+              || tag == static_cast<int>(NodeEnum::kAlwaysStatement))
+            {
+              break;
+            }
+            if(beginLabel.get().text() == disableLabel.get().text())
+            {
+              return;
+            }
+          }
+        }
+      }
+    }
     violations_.insert(LintViolation(symbol, kMessage, context));
   }
 }
