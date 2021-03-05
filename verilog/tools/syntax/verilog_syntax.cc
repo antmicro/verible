@@ -95,6 +95,11 @@ ABSL_FLAG(
     bool, verifytree, false,
     "Verifies that all tokens are parsed into tree, prints unmatched tokens");
 
+ABSL_FLAG(bool, show_diagnostic_context, false,
+          "prints an additional "
+          "line on which the diagnostic was found,"
+          "followed by a line with a position marker");
+
 using verible::ConcreteSyntaxTree;
 using verible::ParserVerifier;
 using verible::TextStructureView;
@@ -143,7 +148,7 @@ static int AnalyzeOneFile(absl::string_view content,
   const auto parse_status = analyzer->ParseStatus();
   if (!lex_status.ok() || !parse_status.ok()) {
     const std::vector<std::string> syntax_error_messages(
-        analyzer->LinterTokenErrorMessages());
+        analyzer->LinterTokenErrorMessages(absl::GetFlag(FLAGS_show_diagnostic_context)));
     const int error_limit = absl::GetFlag(FLAGS_error_limit);
     int error_count = 0;
     for (const auto& message : syntax_error_messages) {
