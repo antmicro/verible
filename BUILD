@@ -17,6 +17,7 @@ installer(
     data = [
         "//common/tools:verible-patch-tool",
         "//common/tools:verible-transform-interactive",
+        "//verilog/tools/detector:verible-verilog-detect",
         "//verilog/tools/diff:verible-verilog-diff",
         "//verilog/tools/formatter:git-verilog-format",
         "//verilog/tools/formatter:verible-verilog-format",
