@@ -88,6 +88,15 @@ class LintRuleRegistry {
     info.description = descriptor;
     (*GetLintRuleRegistry<RuleType>())[rule] = info;
   }
+  
+  static void SetRuleDescription(const LintRuleId rule_id, const std::string &description)
+  {
+    auto rule = (*GetLintRuleRegistry<RuleType>()).find(rule_id);
+    if(rule ==  (*GetLintRuleRegistry<RuleType>()).end())
+      return;
+
+    (*GetLintRuleRegistry<RuleType>())[rule_id].description = "";
+  }
 
   // Returns the description of the specific rule, formatted for description
   // type passed in.
@@ -111,6 +120,7 @@ class LintRuleRegistry {
   LintRuleRegistry() = delete;
   LintRuleRegistry(const LintRuleRegistry&) = delete;
   LintRuleRegistry& operator=(const LintRuleRegistry&) = delete;
+ private:
 };
 
 }  // namespace
@@ -121,6 +131,16 @@ LintRuleRegisterer<RuleType>::LintRuleRegisterer(
     const LintDescription& descriptor) {
   LintRuleRegistry<RuleType>::Register(rule, creator, descriptor);
 }
+
+void OverwriteRulesDescription(const CustomCitationMap& citations)
+{
+  for(const auto&[name, desc] : citations)
+  {
+    LintRuleRegistry<LineLintRule>::SetRuleDescription(name,desc);
+    LintRuleRegistry<SyntaxTreeLintRule>::SetRuleDescription(name,desc);
+  }
+}
+
 
 bool IsRegisteredLintRule(const LintRuleId& rule_name) {
   return LintRuleRegistry<SyntaxTreeLintRule>::ContainsLintRule(rule_name) ||

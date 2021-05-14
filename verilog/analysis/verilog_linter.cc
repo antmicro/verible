@@ -27,8 +27,8 @@
 #include "absl/flags/flag.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
+#include "absl/strings/str_replace.h"
 #include "common/analysis/line_lint_rule.h"
 #include "common/analysis/line_linter.h"
 #include "common/analysis/lint_rule_status.h"
@@ -78,6 +78,7 @@ using verible::LintRuleStatus;
 using verible::LintWaiver;
 using verible::TextStructureView;
 using verible::TokenInfo;
+using analysis::CustomCitationMap;
 
 // Return code useful to be used in main:
 //  0: success
@@ -270,6 +271,50 @@ LinterConfiguration LinterConfigurationFromFlags(
   return config;
 }
 
+static void appendCitation(CustomCitationMap& citations,
+                           absl::string_view rule_raw) {
+  const size_t eq_pos = rule_raw.find(':');
+  if (!eq_pos || eq_pos == absl::string_view::npos) return;
+  const size_t rule_id_end = eq_pos;
+  const size_t rule_citation_beg = eq_pos + 1;
+  absl::string_view rule_id = rule_raw.substr(0, rule_id_end);
+  absl::string_view citation =
+      rule_raw.substr(rule_citation_beg, rule_raw.size() - rule_citation_beg);
+  std::string filtered_citation =
+      absl::StrReplaceAll(citation, {{"\\\n", "\n"}});
+
+  citations[rule_id] = std::move(filtered_citation);
+}
+
+CustomCitationMap ParseCitations(absl::string_view text) {
+  CustomCitationMap citations;
+  size_t rule_begin = 0;
+  size_t rule_end = text.find('\n');
+  while (rule_end != std::string::npos) {
+    if (!rule_end || text[rule_end - 1] == '\\') {
+      rule_end = text.find('\n', rule_end + 1);
+      continue;
+    }
+    auto rule_subs = text.substr(rule_begin, rule_end - rule_begin);
+    appendCitation(citations, rule_subs);
+    rule_begin = rule_end + 1;
+    rule_end = text.find('\n', rule_begin);
+  }
+  return citations;
+}
+
+void OverwriteRulesDescription(absl::string_view &filename)
+{
+
+  CustomCitationMap citations;
+  std::string content;
+  const absl::Status status =
+      verible::file::GetContents(filename, &content);
+  if (!status.ok()) return;
+  citations = ParseCitations(content);
+  analysis::OverwriteRulesDescription(citations);
+}
+
 absl::Status VerilogLintTextStructure(std::ostream* stream,
                                       const std::string& filename,
                                       const std::string& contents,
@@ -334,51 +379,11 @@ absl::Status PrintRuleInfo(std::ostream* os,
   return absl::OkStatus();
 }
 
-static void appendCitation(CustomCitationMap& citations,
-                           absl::string_view rule_raw) {
-  const size_t eq_pos = rule_raw.find(':');
-  if (!eq_pos || eq_pos == absl::string_view::npos) return;
-  const size_t rule_id_end = eq_pos;
-  const size_t rule_citation_beg = eq_pos + 1;
-  absl::string_view rule_id = rule_raw.substr(0, rule_id_end);
-  absl::string_view citation =
-      rule_raw.substr(rule_citation_beg, rule_raw.size() - rule_citation_beg);
-  std::string filtered_citation =
-      absl::StrReplaceAll(citation, {{"\\\n", "\n"}});
-
-  citations[rule_id] = std::move(filtered_citation);
-}
-
-CustomCitationMap ParseCitations(absl::string_view text) {
-  CustomCitationMap citations;
-  size_t rule_begin = 0;
-  size_t rule_end = text.find('\n');
-  while (rule_end != std::string::npos) {
-    if (!rule_end || text[rule_end - 1] == '\\') {
-      rule_end = text.find('\n', rule_end + 1);
-      continue;
-    }
-    auto rule_subs = text.substr(rule_begin, rule_end - rule_begin);
-    appendCitation(citations, rule_subs);
-    rule_begin = rule_end + 1;
-    rule_end = text.find('\n', rule_begin);
-  }
-  return citations;
-}
 
 void GetLintRuleDescriptionsHelpFlag(std::ostream* os,
-                                     absl::string_view flag_value,
-                                     const CustomCitationMap& citations) {
+                                     absl::string_view flag_value) {
   // Set up the map.
   auto rule_map = analysis::GetAllRuleDescriptionsHelpFlag();
-  if (!citations.empty()) {
-    for (const auto& [rule_id, citation] : citations) {
-      auto rule = rule_map.find(rule_id);
-      if (rule != rule_map.end()) {
-        rule->second.description = citation;
-      }
-    }
-  }
   for (const auto& rule_id : analysis::kDefaultRuleSet) {
     rule_map[rule_id].default_enabled = true;
   }
@@ -399,22 +404,16 @@ void GetLintRuleDescriptionsHelpFlag(std::ostream* os,
   }
 }
 
-void GetLintRuleDescriptionsMarkdown(std::ostream* os,
-                                     const CustomCitationMap& citations) {
+void GetLintRuleDescriptionsMarkdown(std::ostream* os) {
   auto rule_map = analysis::GetAllRuleDescriptionsMarkdown();
   for (const auto& rule_id : analysis::kDefaultRuleSet) {
     rule_map[rule_id].default_enabled = true;
   }
 
   for (const auto& rule : rule_map) {
-    auto citation = citations.find(rule.first);
     // Print the rule, description and if it is enabled by default.
     *os << "### " << rule.first << "\n";
-    if (citation != citations.end()) {
-      *os << citation->second << "\n\n";
-    } else {
-      *os << rule.second.description << "\n\n";
-    }
+    *os << rule.second.description << "\n\n";
     *os << "Enabled by default: " << std::boolalpha
         << rule.second.default_enabled << "\n\n";
   }

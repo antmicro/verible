@@ -51,6 +51,9 @@ class LintRuleRegisterer;
 
 using LintRuleId = absl::string_view;
 
+// the structure used for custom citation
+using CustomCitationMap = std::map<LintRuleId, std::string>;
+
 template <typename RuleType>
 using LintRuleGenerator = std::function<std::unique_ptr<RuleType>()>;
 using LintDescription = std::function<std::string(DescriptionType)>;
@@ -161,6 +164,8 @@ LintRuleDescriptionsMap GetAllRuleDescriptionsHelpFlag();
 // Returns a map mapping each rule to a struct of information about the rule in
 // order to create the markdown describing the lint rules.
 LintRuleDescriptionsMap GetAllRuleDescriptionsMarkdown();
+
+void OverwriteRulesDescription(const CustomCitationMap &citations);
 
 }  // namespace analysis
 }  // namespace verilog

@@ -28,7 +28,6 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "common/util/file_util.h"
 #include "common/util/init_command_line.h"
 #include "common/util/logging.h"  // for operator<<, LOG, LogMessage, etc
 #include "verilog/analysis/verilog_linter.h"
@@ -61,7 +60,6 @@ ABSL_FLAG(std::string, lint_rule_citations, "",
           "Please refer to the README file for information about its format.");
 // LINT.ThenChange(README.md)
 
-using verilog::CustomCitationMap;
 using verilog::LinterConfiguration;
 
 int main(int argc, char** argv) {
@@ -71,23 +69,18 @@ int main(int argc, char** argv) {
 
   std::string help_flag = absl::GetFlag(FLAGS_help_rules);
   std::string custom_citations_file = absl::GetFlag(FLAGS_lint_rule_citations);
-  CustomCitationMap citations;
+  if (!custom_citations_file.empty()) {
+    verilog::OverwriteRulesDescription<verible::LineLintRule>(custom_citations_file);
+  }
   if (!help_flag.empty()) {
-    std::string content;
-    if (!custom_citations_file.empty()) {
-      const absl::Status config_read_status =
-          verible::file::GetContents(custom_citations_file, &content);
-      if (!config_read_status.ok()) return -1;
-      citations = verilog::ParseCitations(content);
-    }
-    verilog::GetLintRuleDescriptionsHelpFlag(&std::cout, help_flag, citations);
+    verilog::GetLintRuleDescriptionsHelpFlag(&std::cout, help_flag);
     return 0;
   }
 
   // In documentation generation mode, print documentation and exit immediately.
   bool generate_markdown_flag = absl::GetFlag(FLAGS_generate_markdown);
   if (generate_markdown_flag) {
-    verilog::GetLintRuleDescriptionsMarkdown(&std::cout, citations);
+    verilog::GetLintRuleDescriptionsMarkdown(&std::cout);
     return 0;
   }
 
