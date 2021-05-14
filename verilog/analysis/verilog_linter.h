@@ -33,6 +33,8 @@
 #include "verilog/analysis/verilog_linter_configuration.h"
 
 namespace verilog {
+// the structure used for custom citation
+using CustomCitationMap = std::map<absl::string_view, std::string>;
 
 // Checks a single file for Verilog style lint violations.
 // This is suitable for calling from main().
@@ -125,11 +127,16 @@ absl::Status PrintRuleInfo(std::ostream*,
                            absl::string_view);
 
 // Outputs the descriptions for every rule for the --help_rules flag.
+// When custom citations are delivered substitute chosen rule description
+// with citations specified by user
 void GetLintRuleDescriptionsHelpFlag(std::ostream*, absl::string_view,
-                                     absl::string_view);
+                                     const CustomCitationMap&);
 
 // Outputs the descriptions for every rule, formatted for markdown.
 void GetLintRuleDescriptionsMarkdown(std::ostream*);
+
+// Parse the file with custom citations
+CustomCitationMap ParseCitations(absl::string_view);
 
 }  // namespace verilog
 
