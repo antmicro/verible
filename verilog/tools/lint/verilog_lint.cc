@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
   // In documentation generation mode, print documentation and exit immediately.
   bool generate_markdown_flag = absl::GetFlag(FLAGS_generate_markdown);
   if (generate_markdown_flag) {
-    verilog::GetLintRuleDescriptionsMarkdown(&std::cout);
+    verilog::GetLintRuleDescriptionsMarkdown(&std::cout, citations);
     return 0;
   }
 

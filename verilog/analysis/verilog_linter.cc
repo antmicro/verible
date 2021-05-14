@@ -375,7 +375,7 @@ void GetLintRuleDescriptionsHelpFlag(std::ostream* os,
     for (const auto& [rule_id, citation] : citations) {
       auto rule = rule_map.find(rule_id);
       if (rule != rule_map.end()) {
-        rule->second.description = std::move(citation);
+        rule->second.description = citation;
       }
     }
   }
@@ -399,16 +399,22 @@ void GetLintRuleDescriptionsHelpFlag(std::ostream* os,
   }
 }
 
-void GetLintRuleDescriptionsMarkdown(std::ostream* os) {
+void GetLintRuleDescriptionsMarkdown(std::ostream* os,
+                                     const CustomCitationMap& citations) {
   auto rule_map = analysis::GetAllRuleDescriptionsMarkdown();
   for (const auto& rule_id : analysis::kDefaultRuleSet) {
     rule_map[rule_id].default_enabled = true;
   }
 
   for (const auto& rule : rule_map) {
+    auto citation = citations.find(rule.first);
     // Print the rule, description and if it is enabled by default.
     *os << "### " << rule.first << "\n";
-    *os << rule.second.description << "\n\n";
+    if (citation != citations.end()) {
+      *os << citation->second << "\n\n";
+    } else {
+      *os << rule.second.description << "\n\n";
+    }
     *os << "Enabled by default: " << std::boolalpha
         << rule.second.default_enabled << "\n\n";
   }
