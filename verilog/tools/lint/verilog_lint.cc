@@ -28,6 +28,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "common/util/file_util.h"
 #include "common/util/init_command_line.h"
 #include "common/util/logging.h"  // for operator<<, LOG, LogMessage, etc
 #include "verilog/analysis/verilog_linter.h"
@@ -54,6 +55,10 @@ ABSL_FLAG(bool, show_diagnostic_context, false,
           "prints an additional "
           "line on which the diagnostic was found,"
           "followed by a line with a position marker");
+
+ABSL_FLAG(std::string, lint_rule_citations, "",
+          "Path to lint rule citations to overwrite. "
+          "Please refer to the README file for information about its format.");
 // LINT.ThenChange(README.md)
 
 using verilog::LinterConfiguration;
@@ -64,8 +69,15 @@ int main(int argc, char** argv) {
   const auto args = verible::InitCommandLine(usage, &argc, &argv);
 
   std::string help_flag = absl::GetFlag(FLAGS_help_rules);
+  std::string custom_citations_file = absl::GetFlag(FLAGS_lint_rule_citations);
   if (!help_flag.empty()) {
-    verilog::GetLintRuleDescriptionsHelpFlag(&std::cout, help_flag);
+    std::string content;
+    if (!custom_citations_file.empty()) {
+      const absl::Status config_read_status =
+          verible::file::GetContents(custom_citations_file, &content);
+      if (!config_read_status.ok()) return -1;
+    }
+    verilog::GetLintRuleDescriptionsHelpFlag(&std::cout, help_flag, content);
     return 0;
   }
 

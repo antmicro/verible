@@ -227,6 +227,7 @@ cc_binary(
     deps = [
         "//common/util:init_command_line",
         "//common/util:logging",
+        "//common/util:file_util",
         "//verilog/analysis:verilog_linter",
         "//verilog/analysis:verilog_linter_configuration",
         "@com_google_absl//absl/flags:flag",
