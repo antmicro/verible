@@ -3,8 +3,11 @@
 
 # Verible
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Continuous Integration](https://github.com/google/verible/workflows/verible-ci/badge.svg)](https://github.com/google/verible/actions/workflows/verible-ci.yml)
+
 <!--*
-freshness: { owner: 'fangism' reviewed: '2020-10-08' }
+freshness: { owner: 'hzeller' reviewed: '2020-10-08' }
 *-->
 
 The Verible project's main mission is to parse SystemVerilog (IEEE 1800-2017)
@@ -39,8 +42,8 @@ guide and the [development resources](./doc/development.md).
 
 Verible's code base is written in C++.
 
-To build, you need the [bazel] build system and a C++11 compatible compiler
-(e.g. >= g++-7; Using clang currently fails to compile the m4 dependency).
+To build, you need the [bazel] build system and a C++17 compatible compiler
+(e.g. >= g++-9).
 
 ```bash
 # Build all tools and libraries
@@ -96,6 +99,10 @@ to help with visualizing the syntax structure as understood by the lexer and
 parser. This is very useful tor troubleshooting and understand the internal
 representations seen by the other tools.
 
+The tool has an ability of exporting a concrete syntax tree in JSON format,
+making use of it in external tools easy. There is also a
+[Python wrapper module and a few example scripts](./verilog/tools/syntax/export_json_examples).
+
 ### Style Linter
 
 [`verible-verilog-lint`](./verilog/tools/lint) identifies constructs or patterns
@@ -142,6 +149,13 @@ See https://github.com/google/verible/issues/528
 [`verible-verilog-diff`](./verilog/tools/diff) compares two input files for
 equivalence.
 
+### Verible project tool
+
+[`verible-verilog-project`](./verilog/tools/project) is a multi-tool that
+operates on whole Verilog projects, consisting of a file list and related
+configurations. This serves as a diagnostic tool for analyzing (and potentially
+transforming) project-level sources.
+
 ### Code Obfuscator
 
 [`verible-verilog-obfuscate`](./verilog/tools/obfuscator) transforms Verilog
@@ -157,8 +171,8 @@ See https://github.com/google/verible/issues/528
 
 ### Preprocessor
 
-[`verible-verilog-preprocessor`](./verilog/tools/preprocesor) is a collection of
-preprocessor-like tools, (but does not include a fully-featured Verilog
+[`verible-verilog-preprocessor`](./verilog/tools/preprocessor) is a collection
+of preprocessor-like tools, (but does not include a fully-featured Verilog
 preprocessor yet.)
 
 ### Source Code Indexer

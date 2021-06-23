@@ -22,29 +22,15 @@ verible-verilog-lint: usage: bazel-bin/verilog/tools/lint/verible-verilog-lint [
       name); default: ;
 
 
-  Flags from external/com_google_absl/absl/flags/internal/usage.cc:
-    --help (show help on important flags for this binary [tip: all flags can
-      have two dashes]); default: false;
-    --helpfull (show help on all flags); default: false; currently: true;
-    --helpmatch (show help on modules whose name contains the specified substr);
-      default: "";
-    --helpon (show help on the modules named by this flag value); default: "";
-    --helppackage (show help on all modules in the main package);
-      default: false;
-    --helpshort (show help on only the main module for this program);
-      default: false;
-    --only_check_args (exit after checking all flags); default: false;
-    --version (show version and build info and exit); default: false;
-
-
   Flags from verilog/analysis/verilog_linter.cc:
     --rules (Comma-separated of lint rules to enable. No prefix or a '+' prefix
       enables it, '-' disable it. Configuration values for each rules placed
       after '=' character.); default: ;
     --rules_config (Path to lint rules configuration file. Disables
-      --rule_config_search.); default: ".rules.verible_lint";
-    --rules_config_search (Look for lint rules configuration file, searching
-      upward from the location of each analyzed file.); default: false;
+      --rule_config_search if set.); default: "";
+    --rules_config_search (Look for lint rules configuration file
+      '.rules.verible_lint' searching upward from the location of each analyzed
+      file.); default: false;
     --ruleset ([default|all|none], the base set of rules used by linter);
       default: default;
     --waiver_files (Path to waiver config files (comma-separated). Please refer
@@ -56,6 +42,10 @@ verible-verilog-lint: usage: bazel-bin/verilog/tools/lint/verible-verilog-lint [
 
 
   Flags from verilog/tools/lint/verilog_lint.cc:
+    --autofix ([yes|no|interactive], autofix mode.); default: no;
+    --autofix_output_file (File to write a patch with autofixes to. If not set
+      autofixes are applied directly to the analyzed file. Relevant only when
+      --autofix option is enabled.); default: "";
     --check_syntax (If true, check for lexical and syntax errors, otherwise
       ignore.); default: true;
     --generate_markdown (If true, print the description of every rule formatted
@@ -67,6 +57,12 @@ verible-verilog-lint: usage: bazel-bin/verilog/tools/lint/verible-verilog-lint [
       default: true;
     --parse_fatal (If true, exit nonzero if there are any syntax errors.);
       default: true;
+    --show_diagnostic_context (prints an additional line on which the diagnostic
+      was found,followed by a line with a position marker); default: false;
+
+Try --helpfull to get a list of all flags or --help=substring shows help for
+flags which include specified substring in either in the name, or description or
+path.
 ```
 
 ## Lint Rules
@@ -82,7 +78,10 @@ Checks that there are no occurrences of non-blocking assignment in combinational
 Enabled by default: true
 
 ### always-ff-non-blocking
-Checks that there are no occurrences of blocking assignment in sequential logic.
+Checks that blocking assignments are, at most, targeting locals in sequential logic. See [Style: sequential-logic].
+##### Parameters
+  * `catch_modifying_assignments` Default: `false`
+  * `waive_for_locals` Default: `false`
 
 Enabled by default: true
 
@@ -105,6 +104,11 @@ Enabled by default: true
 Checks that the 'name' argument of `type_id::create()` matches the name of the variable to which it is assigned. See [Verification-Style: naming].
 
 Enabled by default: true
+
+### disable-statement
+Checks that there are no occurrences of `disable some_label` if label is referring to a fork or other none sequential block label.. Use `disable fork` instead. See [Style: disable-invalid-in-non-sequential].
+
+Enabled by default: false
 
 ### endif-comment
 Checks that a Verilog `` `endif`` directive is followed by a comment that matches the name of the opening `` `ifdef`` or `` `ifndef``. See [Style: endif-comment].
@@ -148,6 +152,11 @@ Do not use defparam. See:[Style: defparam].
 
 Enabled by default: true
 
+### forbid-line-continuations
+Checks that there are no occurrences of `'\'` when breaking the string literal line. Use concatenation operator with braces instead. See [Style: forbid-line-continuations].
+
+Enabled by default: true
+
 ### forbidden-macro
 Checks that no forbidden macro calls are used. See [Verification-Style: logging].
 
@@ -161,7 +170,7 @@ Enabled by default: true
 ### generate-label-prefix
 Checks that every generate block label starts with g_ or gen_. See [Style: generate-constructs].
 
-Enabled by default: false
+Enabled by default: true
 
 ### interface-name-style
 Checks that `interface` names use lower_snake_case naming convention and end with '_if'. See [Style: interface-conventions].
@@ -172,6 +181,16 @@ Enabled by default: true
 Checks that no forbidden system tasks or functions are used. These consist of the following functions: `$psprintf`, `$random`, and `$dist_*`. Also non-LRM function `$srandom`. See [Verification-Style: forbidden-system-functions].
 
 Enabled by default: true
+
+### legacy-generate-region
+Checks that there are no generate regions. See [Style: generate-constructs].
+
+Enabled by default: false
+
+### legacy-genvar-declaration
+Checks that there are no separate `genvar` declarations. See [Style: generate-constructs].
+
+Enabled by default: false
 
 ### line-length
 Checks that all lines do not exceed the maximum allowed length. See [Style: line-length].
@@ -184,6 +203,11 @@ Enabled by default: true
 Checks that every macro name follows ALL_CAPS naming convention.  Exception: UVM-like macros.  See [Style: defines].
 
 Enabled by default: true
+
+### macro-string-concatenation
+Concatenation will not be evaluated here. Use `"...`" instead. See [Style: defines].
+
+Enabled by default: false
 
 ### mismatched-labels
 Labels mismatch. See:[Style: mismatched-labels].
@@ -265,6 +289,11 @@ Checks that plusargs are always assigned a value, by ensuring that plusargs are 
 
 Enabled by default: true
 
+### port-name-suffix
+Check that port names end with _i for inputs, _o for outputs and _io for inouts. Alternatively, for active-low signals use _n[io], for differential pairs use _n[io] and _p[io]. See [Style: suffixes-for-signals-and-types].
+
+Enabled by default: false
+
 ### positive-meaning-parameter-name
 Checks that no parameter name starts with 'disable', using positive naming (starting with 'enable') is recommended. See [Style: binary-parameters].
 
@@ -287,6 +316,14 @@ Enabled by default: false
 
 ### struct-union-name-style
 Checks that `struct` and `union` names use lower_snake_case naming convention and end with '_t'. See [Style: struct-union-conventions].
+##### Parameters
+ * `exceptions` (Comma-separated list of allowed upper-case elements, such as unit-names. Default: Empty)
+
+
+Enabled by default: true
+
+### suggest-parentheses
+Recommend extra parentheses around subexpressions where it helps readability. See [Style: parentheses].
 
 Enabled by default: true
 
@@ -330,4 +367,4 @@ Enabled by default: true
 
 ## Version
 
-Generated on 2020-11-18 19:51:56 +0100 from [d4f304e](https://github.com/google/verible/commit/d4f304ef03036f215f140023980861b374e7dc14)
+Generated on 2021-06-21 09:52:31 +0200 from [fce34d2](https://github.com/google/verible/commit/fce34d2b0e6bbf815169121d127a26aa73d0d6c7)

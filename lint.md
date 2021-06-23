@@ -12,7 +12,10 @@ Checks that there are no occurrences of non-blocking assignment in combinational
 Enabled by default: true
 
 ### always-ff-non-blocking
-Checks that there are no occurrences of blocking assignment in sequential logic.
+Checks that blocking assignments are, at most, targeting locals in sequential logic. See [Style: sequential-logic].
+##### Parameters
+  * `catch_modifying_assignments` Default: `false`
+  * `waive_for_locals` Default: `false`
 
 Enabled by default: true
 
@@ -35,6 +38,11 @@ Enabled by default: true
 Checks that the 'name' argument of `type_id::create()` matches the name of the variable to which it is assigned. See [Verification-Style: naming].
 
 Enabled by default: true
+
+### disable-statement
+Checks that there are no occurrences of `disable some_label` if label is referring to a fork or other none sequential block label.. Use `disable fork` instead. See [Style: disable-invalid-in-non-sequential].
+
+Enabled by default: false
 
 ### endif-comment
 Checks that a Verilog `` `endif`` directive is followed by a comment that matches the name of the opening `` `ifdef`` or `` `ifndef``. See [Style: endif-comment].
@@ -78,6 +86,11 @@ Do not use defparam. See:[Style: defparam].
 
 Enabled by default: true
 
+### forbid-line-continuations
+Checks that there are no occurrences of `'\'` when breaking the string literal line. Use concatenation operator with braces instead. See [Style: forbid-line-continuations].
+
+Enabled by default: true
+
 ### forbidden-macro
 Checks that no forbidden macro calls are used. See [Verification-Style: logging].
 
@@ -91,7 +104,7 @@ Enabled by default: true
 ### generate-label-prefix
 Checks that every generate block label starts with g_ or gen_. See [Style: generate-constructs].
 
-Enabled by default: false
+Enabled by default: true
 
 ### interface-name-style
 Checks that `interface` names use lower_snake_case naming convention and end with '_if'. See [Style: interface-conventions].
@@ -102,6 +115,16 @@ Enabled by default: true
 Checks that no forbidden system tasks or functions are used. These consist of the following functions: `$psprintf`, `$random`, and `$dist_*`. Also non-LRM function `$srandom`. See [Verification-Style: forbidden-system-functions].
 
 Enabled by default: true
+
+### legacy-generate-region
+Checks that there are no generate regions. See [Style: generate-constructs].
+
+Enabled by default: false
+
+### legacy-genvar-declaration
+Checks that there are no separate `genvar` declarations. See [Style: generate-constructs].
+
+Enabled by default: false
 
 ### line-length
 Checks that all lines do not exceed the maximum allowed length. See [Style: line-length].
@@ -114,6 +137,11 @@ Enabled by default: true
 Checks that every macro name follows ALL_CAPS naming convention.  Exception: UVM-like macros.  See [Style: defines].
 
 Enabled by default: true
+
+### macro-string-concatenation
+Concatenation will not be evaluated here. Use `"...`" instead. See [Style: defines].
+
+Enabled by default: false
 
 ### mismatched-labels
 Labels mismatch. See:[Style: mismatched-labels].
@@ -195,6 +223,11 @@ Checks that plusargs are always assigned a value, by ensuring that plusargs are 
 
 Enabled by default: true
 
+### port-name-suffix
+Check that port names end with _i for inputs, _o for outputs and _io for inouts. Alternatively, for active-low signals use _n[io], for differential pairs use _n[io] and _p[io]. See [Style: suffixes-for-signals-and-types].
+
+Enabled by default: false
+
 ### positive-meaning-parameter-name
 Checks that no parameter name starts with 'disable', using positive naming (starting with 'enable') is recommended. See [Style: binary-parameters].
 
@@ -217,6 +250,14 @@ Enabled by default: false
 
 ### struct-union-name-style
 Checks that `struct` and `union` names use lower_snake_case naming convention and end with '_t'. See [Style: struct-union-conventions].
+##### Parameters
+ * `exceptions` (Comma-separated list of allowed upper-case elements, such as unit-names. Default: Empty)
+
+
+Enabled by default: true
+
+### suggest-parentheses
+Recommend extra parentheses around subexpressions where it helps readability. See [Style: parentheses].
 
 Enabled by default: true
 
@@ -260,4 +301,4 @@ Enabled by default: true
 
 ## Version
 
-Generated on 2020-11-18 19:51:56 +0100 from [d4f304e](https://github.com/google/verible/commit/d4f304ef03036f215f140023980861b374e7dc14)
+Generated on 2021-06-21 09:52:31 +0200 from [fce34d2](https://github.com/google/verible/commit/fce34d2b0e6bbf815169121d127a26aa73d0d6c7)

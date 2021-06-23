@@ -21,21 +21,6 @@ verible-verilog-syntax: usage: bazel-bin/verilog/tools/syntax/verible-verilog-sy
       name); default: ;
 
 
-  Flags from external/com_google_absl/absl/flags/internal/usage.cc:
-    --help (show help on important flags for this binary [tip: all flags can
-      have two dashes]); default: false;
-    --helpfull (show help on all flags); default: false; currently: true;
-    --helpmatch (show help on modules whose name contains the specified substr);
-      default: "";
-    --helpon (show help on the modules named by this flag value); default: "";
-    --helppackage (show help on all modules in the main package);
-      default: false;
-    --helpshort (show help on only the main module for this program);
-      default: false;
-    --only_check_args (exit after checking all flags); default: false;
-    --version (show version and build info and exit); default: false;
-
-
   Flags from verilog/parser/verilog_parser.cc:
     --verilog_trace_parser (Trace verilog parser); default: false;
 
@@ -43,6 +28,8 @@ verible-verilog-syntax: usage: bazel-bin/verilog/tools/syntax/verible-verilog-sy
   Flags from verilog/tools/syntax/verilog_syntax.cc:
     --error_limit (Limit the number of syntax errors reported. (0: unlimited));
       default: 0;
+    --export_json (Uses JSON for output. Intended to be used as an input for
+      other tools.); default: false;
     --lang (Selects language variant to parse. Options:
       auto: SystemVerilog-2017, but may auto-detect alternate parsing modes
       sv: strict SystemVerilog-2017, with explicit alternate parsing modes
@@ -52,10 +39,16 @@ verible-verilog-syntax: usage: bazel-bin/verilog/tools/syntax/verible-verilog-sy
       default: false;
     --printtokens (Prints all lexed and filtered tokens); default: false;
     --printtree (Whether or not to print the tree); default: false;
+    --show_diagnostic_context (prints an additional line on which the diagnostic
+      was found,followed by a line with a position marker); default: false;
     --verifytree (Verifies that all tokens are parsed into tree, prints
       unmatched tokens); default: false;
+
+Try --helpfull to get a list of all flags or --help=substring shows help for
+flags which include specified substring in either in the name, or description or
+path.
 ```
 
 ## Version
 
-Generated on 2020-11-18 19:51:56 +0100 from [d4f304e](https://github.com/google/verible/commit/d4f304ef03036f215f140023980861b374e7dc14)
+Generated on 2021-06-21 09:52:31 +0200 from [fce34d2](https://github.com/google/verible/commit/fce34d2b0e6bbf815169121d127a26aa73d0d6c7)

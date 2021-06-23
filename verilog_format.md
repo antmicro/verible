@@ -22,21 +22,6 @@ To pipe from stdin, use '-' as <file>.
       name); default: ;
 
 
-  Flags from external/com_google_absl/absl/flags/internal/usage.cc:
-    --help (show help on important flags for this binary [tip: all flags can
-      have two dashes]); default: false;
-    --helpfull (show help on all flags); default: false; currently: true;
-    --helpmatch (show help on modules whose name contains the specified substr);
-      default: "";
-    --helpon (show help on the modules named by this flag value); default: "";
-    --helppackage (show help on all modules in the main package);
-      default: false;
-    --helpshort (show help on only the main module for this program);
-      default: false;
-    --only_check_args (exit after checking all flags); default: false;
-    --version (show version and build info and exit); default: false;
-
-
   Flags from verilog/parser/verilog_parser.cc:
     --verilog_trace_parser (Trace verilog parser); default: false;
 
@@ -48,6 +33,7 @@ To pipe from stdin, use '-' as <file>.
       {align,flush-left,preserve,infer}); default: infer;
     --class_member_variables_alignment (Format class member variables:
       {align,flush-left,preserve,infer}); default: infer;
+    --expand_coverpoints (If true, always expand coverpoints.); default: false;
     --failsafe_success (If true, always exit with 0 status, even if there were
       input errors or internal errors. In all error conditions, the original
       text is always preserved. This is useful in deploying services where
@@ -90,14 +76,21 @@ To pipe from stdin, use '-' as <file>.
     --stdin_name (When using '-' to read from stdin, this gives an alternate
       name for diagnostic purposes. Otherwise this is ignored.);
       default: "<stdin>";
+    --struct_union_members_alignment (Format struct/union members:
+      {align,flush-left,preserve,infer}); default: infer;
     --try_wrap_long_lines (If true, let the formatter attempt to optimize line
       wrapping decisions where wrapping is needed, else leave them unformatted.
       This is a short-term measure to reduce risk-of-harm.); default: false;
+    --verbose (Be more verbose.); default: false;
     --verify_convergence (If true, and not incrementally formatting with
       --lines, verify that re-formatting the formatted output yields no further
       changes, i.e. formatting is convergent.); default: true;
+
+Try --helpfull to get a list of all flags or --help=substring shows help for
+flags which include specified substring in either in the name, or description or
+path.
 ```
 
 ## Version
 
-Generated on 2020-11-18 19:51:56 +0100 from [d4f304e](https://github.com/google/verible/commit/d4f304ef03036f215f140023980861b374e7dc14)
+Generated on 2021-06-21 09:52:31 +0200 from [fce34d2](https://github.com/google/verible/commit/fce34d2b0e6bbf815169121d127a26aa73d0d6c7)
