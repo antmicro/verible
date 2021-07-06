@@ -789,6 +789,11 @@ void TreeUnwrapper::SetIndentationsAndCreatePartitions(
       break;
     }
 
+    case NodeEnum::kConditionExpression: {
+      VisitIndentedSection(node, style_.indentation_spaces,
+                           PartitionPolicyEnum::kTabularAlignment);
+      break;
+    }
     // The following set of cases are related to flow-control (loops and
     // conditionals) for statements and generate items:
     case NodeEnum::kAssertionBody:
@@ -901,6 +906,16 @@ void TreeUnwrapper::SetIndentationsAndCreatePartitions(
         } else {
           TraverseChildren(node);
         }
+      } else if (Context().DirectParentIs(NodeEnum::kConditionExpression)) {
+        const auto* subnode =
+            verible::CheckOptionalSymbolAsNode(GetSubtreeAsSymbol(node, tag, 0));
+        const auto next_indent =
+            (subnode != nullptr && NodeIsBeginEndBlock(*subnode))
+                ? 0
+                : style_.indentation_spaces;
+        VisitIndentedSection(node, next_indent,
+                             PartitionPolicyEnum::kFitOnLineElseExpand);
+        break;
       } else {
         TraverseChildren(node);
       }
@@ -1179,6 +1194,16 @@ void TreeUnwrapper::SetIndentationsAndCreatePartitions(
       } else if (Context().IsInside(NodeEnum::kAssignmentPattern)) {
         VisitIndentedSection(node, style_.wrap_spaces,
                              PartitionPolicyEnum::kFitOnLineElseExpand);
+      } else if (Context().DirectParentIs(NodeEnum::kConditionExpression)) {
+        const auto* subnode =
+            verible::CheckOptionalSymbolAsNode(GetSubtreeAsSymbol(node, tag, 0));
+        const auto next_indent =
+            (subnode != nullptr && NodeIsBeginEndBlock(*subnode))
+                ? 0
+                : style_.indentation_spaces;
+        VisitIndentedSection(node, next_indent,
+                             PartitionPolicyEnum::kFitOnLineElseExpand);
+        break;
       } else {
         TraverseChildren(node);
       }
@@ -2044,6 +2069,11 @@ void TreeUnwrapper::Visit(const verible::SyntaxTreeLeaf& leaf) {
       // Do not allow non-comment tokens on the same line as `else
       // (comments were handled above)
       StartNewUnwrappedLine(PartitionPolicyEnum::kFitOnLineElseExpand, &leaf);
+      break;
+    }
+    case '?':
+    case ':': {
+      MergeLastTwoPartitions();
       break;
     }
     default:
