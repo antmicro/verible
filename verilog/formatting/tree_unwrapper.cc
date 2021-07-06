@@ -1655,6 +1655,28 @@ void TreeUnwrapper::ReshapeTokenPartitions(
           }
         }
       }
+          VLOG(4) << "RefCallBase partition" << std::endl << partition << std::endl;
+      if (partition.PreviousSibling()) {
+        const auto& uwline = partition.PreviousSibling()->Value();
+        if (!uwline.IsEmpty() &&
+            uwline.TokensRange().back().TokenEnum() == '?') {
+          VLOG(4) << "RefCallBase 1 after condition" << std::endl << partition << std::endl;
+        } else if (!uwline.IsEmpty() &&
+            uwline.TokensRange().back().TokenEnum() == ':') {
+          // This seems to be the last one in ?-: chain
+          VLOG(4) << "RefCallBase after ':' else" << std::endl << partition << std::endl;
+        }
+      } else if (partition.Parent()->RightmostDescendant()) {
+        const auto& uwline = partition.Parent()->RightmostDescendant()->Value();
+        if (!uwline.IsEmpty() &&
+            uwline.TokensRange().back().TokenEnum() == '?') {
+          VLOG(4) << "RefCallBase 2 after condition" << std::endl << partition << std::endl;
+        } else if (!uwline.IsEmpty() &&
+            uwline.TokensRange().back().TokenEnum() == ':') {
+          // This seems to be the last one in ?-: chain
+          VLOG(4) << "RefCallBase 2 after ':' else" << std::endl << partition << std::endl;
+        }
+      }
       break;
     }
 
@@ -1708,6 +1730,21 @@ void TreeUnwrapper::ReshapeTokenPartitions(
     case NodeEnum::kGenerateElseClause:
     case NodeEnum::kElseClause: {
       ReshapeElseClause(node, &partition);
+      break;
+    }
+    // The following cases handle reshaping around ternary if expressions
+    case NodeEnum::kConditionExpression: {
+      break;
+    }
+    case NodeEnum::kExpression: {
+      const auto& uwline = partition.PreviousSibling()->Value();
+      if (!uwline.IsEmpty() &&
+          uwline.TokensRange().back().TokenEnum() == '?') {
+        VLOG(4) << "Expression after condition" << std::endl << partition << std::endl;
+      } else if (!uwline.IsEmpty() &&
+          uwline.TokensRange().back().TokenEnum() == ':') {
+        VLOG(4) << "Expression after ':' else" << std::endl << partition << std::endl;
+      }
       break;
     }
 
