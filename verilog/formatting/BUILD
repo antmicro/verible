@@ -132,6 +132,7 @@ cc_library(
         ":align",
         ":comment_controls",
         ":format_style",
+        ":layout_optimizer",
         ":token_annotator",
         ":tree_unwrapper",
         "//common/formatting:format_token",
@@ -282,5 +283,20 @@ cc_test(
         "//verilog/parser:verilog_token_enum",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "layout_optimizer",
+    srcs = ["layout_optimizer.cc"],
+    hdrs = [
+        "layout_optimizer.h",
+    ],
+    deps = [
+        #":line_wrap_searcher",
+        "//common/formatting:basic_format_style",
+        "//common/formatting:token_partition_tree",
+        "//common/formatting:unwrapped_line",
+        "//common/util:vector_tree",
     ],
 )

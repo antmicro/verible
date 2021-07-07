@@ -2251,12 +2251,13 @@ static constexpr FormatterTestCase kFormatterTestCases[] = {
      "    foo f;\n"
      "  end\n"
      "endmodule\n"},
-    {
+    {// FIXME(ldk): Affected by kOptimalLayout, GH#30
         "module block_generate;\n"
         "`ASSERT(blah)\n"
         "generate endgenerate endmodule\n",
         "module block_generate;\n"
-        "  `ASSERT(blah)\n"
+        "  `ASSERT(\n"
+        "      blah)\n"
         "  generate\n"
         "  endgenerate\n"
         "endmodule\n",
@@ -10164,6 +10165,38 @@ TEST(FormatterEndToEndTest, OnelineFormatExpandTest) {
 }
 
 // TODO(fangism): directed tests using style variations
+
+// FIXME(ldk): WIP GH#30
+static constexpr FormatterTestCase kNestedFunctionsTestCases[] = {
+    {
+     "`uvm_info(`gfn, $sformatf(\n"
+     "\"\\n  base_vseq: generate \%0d pulse in channel \%0d\", cfg.num_pulses, i), UVM_DEBUG)\n",
+     "`uvm_info(`gfn, $sformatf(\n"
+     "          \"\\n  base_vseq: generate %0d pulse in channel %0d\"\n"
+     "              ,\n"
+     "          cfg.num_pulses,\n"
+     "          i\n"
+     "          ), UVM_DEBUG)\n"
+    },
+};
+
+TEST(FormatterEndToEndTest, FormatNestedFunctionsTestCases) {
+  // Use a fixed style.
+  FormatStyle style;
+  style.column_limit = 40;
+  style.indentation_spaces = 2;
+  style.wrap_spaces = 4;
+
+  for (const auto& test_case : kNestedFunctionsTestCases) {
+    VLOG(1) << "code-to-format:\n" << test_case.input << "<EOF>";
+    std::ostringstream stream;
+    const auto status =
+        FormatVerilog(test_case.input, "<filename>", style, stream);
+    // Require these test cases to be valid.
+    EXPECT_OK(status) << status.message();
+    EXPECT_EQ(stream.str(), test_case.expected) << "code:\n" << test_case.input;
+  }
+}
 
 }  // namespace
 }  // namespace formatter

@@ -47,6 +47,7 @@
 #include "verilog/formatting/align.h"
 #include "verilog/formatting/comment_controls.h"
 #include "verilog/formatting/format_style.h"
+#include "verilog/formatting/layout_optimizer.h"
 #include "verilog/formatting/token_annotator.h"
 #include "verilog/formatting/tree_unwrapper.h"
 #include "verilog/parser/verilog_token_enum.h"
@@ -356,6 +357,7 @@ static void DeterminePartitionExpansion(
       LOG(FATAL) << "Got an uninitialized partition policy at: " << uwline;
       break;
     }
+    case PartitionPolicyEnum::kOptimalLayout:
     case PartitionPolicyEnum::kAlwaysExpand: {
       if (children.size() > 1) {
         node_view.Expand();
@@ -596,6 +598,10 @@ Status Formatter::Format(const ExecutionControl& control) {
           // Reshape partition tree with kAppendFittingSubPartitions policy
           verible::ReshapeFittingSubpartitions(&node, style_);
           break;
+        case PartitionPolicyEnum::kOptimalLayout: {
+          verilog::formatter::OptimizeTokenPartitionTree(&node, style_);
+          break;
+        }
         case PartitionPolicyEnum::kTabularAlignment:
           // TODO(b/145170750): Adjust inter-token spacing to achieve alignment,
           // but leave partitioning intact.
